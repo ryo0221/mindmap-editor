@@ -240,7 +240,98 @@
     {
       "from": "IV-07",
       "to": "FD-15"
+    },
+    {
+      "from": "CM-01",
+      "to": "OP-01"
+    },
+    {
+      "from": "CM-01",
+      "to": "OP-06"
+    },
+    {
+      "from": "CM-02",
+      "to": "OP-01"
+    },
+    {
+      "from": "CM-02",
+      "to": "OP-06"
+    },
+    {
+      "from": "CM-03",
+      "to": "OP-02"
+    },
+    {
+      "from": "CM-03",
+      "to": "OP-06"
+    },
+    {
+      "from": "CM-04",
+      "to": "OP-02"
+    },
+    {
+      "from": "CM-04",
+      "to": "OP-06"
+    },
+    {
+      "from": "CM-05",
+      "to": "OP-05"
+    },
+    {
+      "from": "CM-05",
+      "to": "OP-06"
+    },
+    {
+      "from": "CM-06",
+      "to": "OP-03"
+    },
+    {
+      "from": "CM-06",
+      "to": "OP-06"
+    },
+    {
+      "from": "CM-07",
+      "to": "OP-04"
+    },
+    {
+      "from": "CM-07",
+      "to": "OP-06"
+    },
+    {
+      "from": "CM-08",
+      "to": "OP-04"
+    },
+    {
+      "from": "CM-08",
+      "to": "OP-06"
+    },
+    {
+      "from": "CM-09",
+      "to": "OP-04"
+    },
+    {
+      "from": "CM-09",
+      "to": "OP-06"
+    },
+    {
+      "from": "CM-10",
+      "to": "OP-03"
+    },
+    {
+      "from": "CM-10",
+      "to": "OP-06"
     }
   ],
-  "exemptions": []
+  "exemptions": [
+    {
+      "rule": "operation-covered-by-command",
+      "item": "OP-07",
+      "reason": "読み取り専用で開く操作は内容を変えないため、編集の操作はない。"
+    },
+    {
+      "rule": "operation-covered-by-command",
+      "item": "OP-08",
+      "reason": "保存と読み込みはHostの仕事であり、編集の操作ではない。"
+    }
+  ]
 }
