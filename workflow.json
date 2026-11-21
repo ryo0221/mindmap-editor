@@ -161,5 +161,32 @@
   "learning": {
    "state": "未着手"
   }
- }
+ },
+ "gates": [
+  {
+   "name": "依存を入れる",
+   "run": "npm ci --no-audit --no-fund",
+   "limitSeconds": 600
+  },
+  {
+   "name": "型の検査",
+   "run": "npm run check",
+   "limitSeconds": 300
+  },
+  {
+   "name": "単体の試験",
+   "run": "npm test",
+   "limitSeconds": 600
+  },
+  {
+   "name": "ビルド",
+   "run": "npm run build:extension",
+   "limitSeconds": 600
+  },
+  {
+   "name": "package の検証",
+   "run": "npm run verify:package",
+   "limitSeconds": 300
+  }
+ ]
 }
