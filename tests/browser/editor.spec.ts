@@ -127,7 +127,9 @@ test('TS-023 does not reuse an issued ID after undo when random bytes repeat', a
   const issued = await page.locator('.mindmap-node').last().getAttribute('data-node-id');
   expect(issued).toMatch(/^n-[0-9a-f]{32}$/);
   await page.getByRole('button', { name: '↶ Undo' }).click();
+  await expect(page.locator('.mindmap-node')).toHaveCount(1);
   await page.getByRole('button', { name: '子を足す' }).click();
+  await expect(page.locator('.mindmap-node')).toHaveCount(2);
   expect(await page.locator('.mindmap-node').last().getAttribute('data-node-id')).not.toBe(issued);
 });
 

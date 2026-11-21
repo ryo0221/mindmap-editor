@@ -1,6 +1,6 @@
 import type { ScopedHost } from '@editor-platform/extension-contract';
 import type { EditorCommand } from '@editor-platform/editor-core';
-import { addNode, renameNode, deleteNode, reorderNode, moveNode, colorNode, markNode, noteNode } from './mindmap-commands';
+import { addNode, renameNode, deleteNode, reorderNode, moveNode, colorNode, markNode, noteNode, setLayout } from './mindmap-commands';
 import type { Layout, Mark, MindmapDocument } from './mindmap-model';
 import styles from './styles.css?inline';
 
@@ -8,12 +8,16 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, text?: string): HTMLE
   const e = document.createElement(tag); if (text !== undefined) e.textContent = text; return e;
 }
 function randomId(): string { return 'n-' + Array.from(crypto.getRandomValues(new Uint8Array(16)), n => n.toString(16).padStart(2, '0')).join(''); }
+const issuedByDocument = new Map<string, Set<string>>();
 export function mountEditor(container: HTMLElement, host: ScopedHost<MindmapDocument>): () => void {
   const root = el('section'); root.className = 'mindmap-editor'; root.setAttribute('aria-label', 'マインドマップ');
-  const style = el('style', styles), toolbar = el('div'), status = el('p'), main = el('div'), map = el('div'), panel = el('form');
+  const style = el('style', styles), toolbar = el('fieldset'), status = el('p'), main = el('div'), map = el('div'), panel = el('form'), panelFields = el('fieldset');
   toolbar.className = 'mindmap-toolbar'; main.className = 'mindmap-main'; map.className = 'mindmap-map'; panel.className = 'mindmap-panel'; status.setAttribute('role','status');
   root.append(style, toolbar, status, main); main.append(map, panel); container.append(root);
   let selected = host.read().rootId, readonly = false, layout: Layout = host.read().layout, last = '', snapshot = '', composing = false;
+  const initial = host.read();
+  const issued = issuedByDocument.get(initial.id) ?? new Set<string>();
+  issuedByDocument.set(initial.id, issued);
   const folded = new Map<string, boolean>();
   const button = (label: string, action: () => void) => { const b = el('button', label); b.type = 'button'; b.onclick = action; return b; };
   function perform(cmd: EditorCommand<MindmapDocument>): boolean {
@@ -21,20 +25,21 @@ export function mountEditor(container: HTMLElement, host: ScopedHost<MindmapDocu
     try { host.execute(cmd); status.textContent = ''; draw(); return true; }
     catch { readonly = true; status.textContent = '読み取り専用です'; draw(); return false; }
   }
-  function add(child: boolean) { if (readonly) return; if (dirty()) { status.textContent = '未確定の入力を適用または取り消してください。'; return; } const d = host.read(), n = d.nodes[selected]; if (!n) return; const p = child ? n : Object.values(d.nodes).find(x => x.children.includes(selected)); if (!p) { status.textContent = '根に兄弟は追加できません。'; return; } const id = randomId(); if (perform(addNode(p.id, child ? p.children.length : p.children.indexOf(selected) + 1, id, ''))) { folded.set(p.id, false); selected = id; draw(true); name.focus(); } }
+  function add(child: boolean) { if (readonly) return; if (dirty()) { status.textContent = '未確定の入力を適用または取り消してください。'; return; } const d = host.read(), n = d.nodes[selected]; if (!n) return; const p = child ? n : Object.values(d.nodes).find(x => x.children.includes(selected)); if (!p) { status.textContent = '根に兄弟は追加できません。'; return; } Object.keys(d.nodes).forEach(id => issued.add(id)); let id = ''; for (let i = 0; i < 32; i++) { const candidate = randomId(); if (!issued.has(candidate)) { id = candidate; break; } } if (!id) { status.textContent = '新しい枝のIDを発行できませんでした。'; return; } issued.add(id); if (perform(addNode(p.id, child ? p.children.length : p.children.indexOf(selected) + 1, id, ''))) { folded.set(p.id, false); selected = id; draw(true); name.focus(); } }
   function remove() { if (!readonly && selected !== host.read().rootId && confirm('子孫を含む枝を削除しますか？')) { const d = host.read(), p = Object.values(d.nodes).find(n => n.children.includes(selected)); if (perform(deleteNode(selected)) && p) { selected = p.id; draw(true); } } }
   function history(redo: boolean) { if (readonly) return; try { redo ? host.redo() : host.undo(); draw(true); } catch (e) { status.textContent = e instanceof Error ? e.message : '操作できません。'; if (/permission|read.only|権限|読み取り専用/i.test(status.textContent)) { readonly = true; status.textContent = '読み取り専用です'; draw(); } } }
   const sibling = button('枝を足す', () => add(false)), child = button('子を足す', () => add(true)), del = button('消す', remove), undo = button('Undo', () => history(false)), redo = button('Redo', () => history(true));
   const layoutSelect = el('select'); layoutSelect.setAttribute('aria-label','配置');
   for (const [value, label] of [['radial','左右'],['right','右向き'],['tree','下向き']]) { const o = el('option',label); o.value = value; layoutSelect.append(o); }
-  layoutSelect.onchange = () => { layout = layoutSelect.value as Layout; draw(); };
+  layoutSelect.onchange = () => { if (layoutSelect.value !== host.read().layout) perform(setLayout(layoutSelect.value as Layout)); else draw(); };
   toolbar.append(sibling, child, del, undo, redo, layoutSelect);
   const heading = el('h2','枝の情報'), name = el('input'), color = el('input'), marks = el('input'), note = el('textarea');
   name.setAttribute('aria-label','名前'); color.setAttribute('aria-label','色'); marks.setAttribute('aria-label','印'); note.setAttribute('aria-label','メモ');
   const label = (title: string, input: HTMLElement) => { const l = el('label',title); l.append(input); return l; };
   const apply = el('button','適用'); apply.type = 'submit'; const cancel = button('取消', () => draw(true));
   const branchActions = el('div'); branchActions.className = 'mindmap-branch-actions';
-  panel.append(heading,label('名前',name),label('色（例 #336699）',color),label('印（カンマ区切り）',marks),label('メモ',note),apply,cancel,branchActions);
+  panelFields.className = 'mindmap-panel-fields'; panel.append(panelFields);
+  panelFields.append(heading,label('名前',name),label('色（例 #336699）',color),label('印（カンマ区切り）',marks),label('メモ',note),apply,cancel,branchActions);
   function dirty() { if (!snapshot) return false; const n = JSON.parse(snapshot); return name.value !== n.text || color.value !== (n.color ?? '') || marks.value !== (n.marks ?? []).join(', ') || note.value !== (n.note ?? ''); }
   const guard = (event: BeforeUnloadEvent) => { if (dirty()) { event.preventDefault(); event.returnValue = ''; } };
   window.addEventListener('beforeunload', guard);
@@ -51,7 +56,7 @@ export function mountEditor(container: HTMLElement, host: ScopedHost<MindmapDocu
     if (perform({ type: 'mindmap.fields', label: '枝の情報を編集', readonlyInput: true, apply(current) { if (!current.nodes[id] || JSON.stringify(current.nodes[id]) !== before) throw new Error('編集中にこの枝が変更されました。'); return commands.reduce((doc, cmd) => cmd.apply(doc),current); } })) draw(true);
   };
   function draw(reset = false) {
-    const d = host.read(); last = JSON.stringify(d); if (!d.nodes[selected] && (reset || !snapshot)) selected = d.rootId;
+    const d = host.read(); Object.keys(d.nodes).forEach(id => issued.add(id)); layout = d.layout; last = JSON.stringify(d); if (!d.nodes[selected] && (reset || !snapshot || !dirty())) { selected = d.rootId; snapshot = ''; }
     const n = d.nodes[selected]; sibling.disabled = readonly || selected === d.rootId; child.disabled = readonly || !n; del.disabled = readonly || selected === d.rootId || !n; undo.disabled = redo.disabled = readonly;
     for (const control of [name,color,marks,note,apply,cancel]) control.disabled = readonly || !n;
     layoutSelect.value = layout;

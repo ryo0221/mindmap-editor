@@ -1,6 +1,6 @@
 {
   "試験の対応表": "試験",
-  "範囲": "各試験が示す部分のみ確認した。TS-023・TS-027・TS-029は落ちており、仕様全体を対応済みとはしない。",
+  "範囲": "各試験が示す部分のみ確認した。IDの再利用防止は同じページ内で観測・発行したIDを対象とし、ページ再読み込みをまたぐ削除済みIDの保持は未対応。仕様全体を対応済みとはしない。",
   "test": [
     {
       "id": "TS-001",
@@ -257,8 +257,8 @@
         "IV-05",
         "CAP-01"
       ],
-      "方法": "tests/mindmap-trace.test.ts: TS-023 rejects malformed and mismatched node IDs; tests/browser/editor.spec.ts: TS-023 does not reuse an issued ID after undo when random bytes repeat。形式・一致は通ったが、同じ乱数が続くとUndo後に発行済みIDが再利用され、試験は落ちた。削除後は未実施。",
-      "結果": "落ちた"
+      "方法": "tests/mindmap-trace.test.ts: TS-023 rejects malformed and mismatched node IDs; tests/browser/editor.spec.ts: TS-023 does not reuse an issued ID after undo when random bytes repeat; tests/surface.test.ts: does not reuse an issued ID after deletion when random bytes repeat。同じページ内の確認。",
+      "結果": "通った"
     },
     {
       "id": "TS-024",
@@ -303,8 +303,8 @@
         "CAP-02",
         "CAP-06"
       ],
-      "方法": "tests/browser/editor.spec.ts: TS-027 allows temporary folding in read-only without changing history or saved content。開発Hostが読み取り専用時に画面全体を無効にするため折りたたみボタンを押せず、後続の内容・履歴・保存の検査は未到達。",
-      "結果": "落ちた"
+      "方法": "tests/browser/editor.spec.ts: TS-027 allows temporary folding in read-only without changing history or saved content",
+      "結果": "通った"
     },
     {
       "id": "TS-028",
@@ -329,8 +329,8 @@
         "CAP-02",
         "CAP-04"
       ],
-      "方法": "tests/browser/editor.spec.ts: TS-029 saves layout changes and restores them through undo and redo。画面の配置選択は表示のみを変更し本体に反映されないため、後続の履歴・保存の検査は未到達。",
-      "結果": "落ちた"
+      "方法": "tests/browser/editor.spec.ts: TS-029 saves layout changes and restores them through undo and redo",
+      "結果": "通った"
     }
   ],
   "対象外の能力": [

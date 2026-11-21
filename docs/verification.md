@@ -181,3 +181,13 @@ root契約: `1.0.0-draft.1`、operations add-on: `operations@0-draft`。
 - 直前の実行では、保存後の再読込を待たずに画面を計測した左端の試験も両幅で失敗した。再読込の完了を待つよう試験を修正し、上記の再実行では両幅とも成功した。
 
 失敗した項目を含む範囲は対応済みとはしない。実PaoBubとの接続は試していない。
+
+### 画面の失敗修正の確認（2026-11-21）
+
+基準 commit `64d08b4b09b0a4fac145f052d18e0e93ce78d96f` に未コミットの修正を加えた作業ツリーで実行した。
+
+- `npm run check`：成功。
+- `npx vitest run tests/surface.test.ts tests/mindmap-trace.test.ts`：2ファイル、10件成功。削除後のID再利用防止を追加後、`npx vitest run tests/surface.test.ts`：4件成功。
+- `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/opt/pw-browsers/chromium npx playwright test --trace off`：デスクトップ・モバイル各11件、計22件成功。
+
+発行済みIDの記憶は同じページ内に限られ、ページ再読み込み後の削除済みIDは保持されない。実PaoBubとの接続は試していない。

@@ -104,7 +104,8 @@ async function main() {
       surfaceHandle.mount(get('surface'));
       renderedRevision = surfaceKey;
     }
-    get<HTMLFieldSetElement>('surface-fieldset').disabled = snapshot.readOnly || hostBusy;
+    get<HTMLFieldSetElement>('surface-fieldset').disabled = hostBusy;
+    get('surface').querySelectorAll<HTMLFieldSetElement>('.mindmap-toolbar, .mindmap-panel-fields').forEach(fieldset => { fieldset.disabled = snapshot.readOnly; });
     get('readonly-note').hidden = !snapshot.readOnly;
     get('save-state').textContent = snapshot.saving
       ? '保存中…'
