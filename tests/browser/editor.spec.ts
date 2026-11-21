@@ -6,6 +6,31 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('.mindmap-node')).toHaveCount(1);
 });
 
+test('shows the center and new branch in the map and focuses its name', async ({ page }) => {
+  const map = page.locator('.mindmap-map');
+  const insideMap = async (node: ReturnType<typeof page.locator>) => {
+    const bounds = await map.boundingBox();
+    const box = await node.boundingBox();
+    expect(bounds).not.toBeNull(); expect(box).not.toBeNull();
+    expect(box!.x).toBeGreaterThanOrEqual(bounds!.x);
+    expect(box!.x + box!.width).toBeLessThanOrEqual(bounds!.x + bounds!.width);
+    expect(box!.y).toBeGreaterThanOrEqual(bounds!.y);
+    expect(box!.y + box!.height).toBeLessThanOrEqual(bounds!.y + bounds!.height);
+  };
+  await insideMap(page.getByRole('button', { name: '中心', exact: true }));
+  await page.getByRole('button', { name: '子を足す' }).click();
+  const name = page.getByLabel('名前', { exact: true });
+  await expect(name).toBeFocused();
+  await insideMap(page.getByRole('button', { name: '（無題）', exact: true }));
+  await name.fill('新しい枝');
+  await name.dispatchEvent('compositionstart');
+  await page.locator('.mindmap-panel').dispatchEvent('submit');
+  await expect(page.getByRole('button', { name: '（無題）', exact: true })).toBeVisible();
+  await name.dispatchEvent('compositionend');
+  await page.getByRole('button', { name: '適用', exact: true }).click();
+  await insideMap(page.getByRole('button', { name: '新しい枝', exact: true }));
+});
+
 test('edits, undoes, saves and reopens a mindmap', async ({ page }) => {
   await page.getByRole('button', { name: '子を足す' }).click();
   await expect(page.locator('.mindmap-node')).toHaveCount(2);
