@@ -2,16 +2,18 @@
 
 ## マインドマップ版 0.1.0
 
-確認日: 2026-11-21。対象 commit: `5c7eb6a8a4536d733104d48257229de5aff58369`。
+確認日: 2026-11-21。対象 commit: `b6f4be7a587ee3910238ffe190633e51020b4cdb`。検査時の作業ツリーはクリーンで、検査後にこの記録を更新した。
 
 | 検査 | 結果 |
 | --- | --- |
 | `npm run check` | PASS。SDK固定ソースの照合と型検査 |
 | `npm test` | PASS。6ファイル、18テスト（失敗・スキップなし） |
+| `npm run build` | PASS。拡張、PaoBub向け素材、開発Hostを生成 |
 | `npm run build:extension` | PASS。拡張とPaoBub向け素材を生成 |
 | `npm run verify:package` | PASS。独立した利用側でpackageの読込、改ざん拒否、提案、履歴、読み取り専用、保存・再読込を確認 |
+| `npm run test:e2e` | PASS。システムのGoogle Chromeでデスクトップ・モバイル計8テスト（失敗・スキップなし）。中心と追加した枝の表示、名前欄へのフォーカス、IME変換中の適用抑止を含む |
 
-初回の型検査は依存パッケージが未導入のため停止した。`npm ci --no-audit --no-fund` で依存を導入後、上記を順に実行した。実PaoBubへの接続は今回の検査対象に含まない。
+Playwright付属ブラウザは未導入で、ダウンロードもアクセス制限により失敗したため、インストール済みのChromeを指定して実行した。実PaoBubへの接続は今回の検査対象に含まない。
 
 # 過去の版 — カード Editor
 
