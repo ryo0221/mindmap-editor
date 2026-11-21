@@ -190,6 +190,11 @@
    "name": "package の検証",
    "run": "npm run verify:package",
    "limitSeconds": 300
+  },
+  {
+   "name": "画面の試験",
+   "run": "PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/opt/pw-browsers/chromium npx playwright test --trace off",
+   "limitSeconds": 600
   }
  ]
 }
