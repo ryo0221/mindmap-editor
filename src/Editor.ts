@@ -10,6 +10,10 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, text?: string): HTMLE
 function randomId(): string { return 'n-' + Array.from(crypto.getRandomValues(new Uint8Array(16)), n => n.toString(16).padStart(2, '0')).join(''); }
 /** 色見本（見せる名前と保存する色）。先頭は色なし。 */
 export const PALETTE: readonly (readonly [string, string])[] = [['色なし',''],['赤','#d64545'],['橙','#e8862a'],['黄','#d9b310'],['緑','#3a9d5d'],['水色','#2fa4c9'],['青','#3d6fc4'],['紫','#8a5cc2'],['桃','#d9669b'],['灰','#7a8594']];
+/** 印（保存する値と見せる名前）。1つの枝に付けられるのは最大4つ。 */
+export const MARKS: readonly (readonly [Mark, string])[] = [['question','疑問'],['idea','アイデア'],['decision','決定'],['risk','リスク'],['todo','やること'],['done','済み'],['star','重要']];
+const MAX_MARKS = 4;
+const markName = (m: string) => MARKS.find(([v]) => v === m)?.[1] ?? m;
 const issuedByDocument = new Map<string, Set<string>>();
 export function mountEditor(container: HTMLElement, host: ScopedHost<MindmapDocument>): () => void {
   const root = el('section'); root.className = 'mindmap-editor'; root.setAttribute('aria-label', 'マインドマップ');
@@ -36,7 +40,7 @@ export function mountEditor(container: HTMLElement, host: ScopedHost<MindmapDocu
   layoutSelect.onchange = () => { if (layoutSelect.value !== host.read().layout) perform(setLayout(layoutSelect.value as Layout)); else draw(); };
   toolbar.append(sibling, child, del, undo, redo, layoutSelect);
   const heading = el('h2','枝の情報'), name = el('input'), color = el('input'), marks = el('input'), note = el('textarea');
-  name.setAttribute('aria-label','名前'); color.type = 'hidden'; marks.setAttribute('aria-label','印'); note.setAttribute('aria-label','メモ');
+  name.setAttribute('aria-label','名前'); color.type = 'hidden'; marks.type = 'hidden'; note.setAttribute('aria-label','メモ');
   // 色は色見本から選ぶ（色コードは見せない）。見本に無い色が付いた枝は「いまの色」として残し、選び直すまで変えない
   const palette = el('fieldset'); palette.className = 'mindmap-palette'; palette.setAttribute('role','radiogroup'); palette.setAttribute('aria-label','色');
   const paletteTitle = el('legend','色'), other = el('button','いまの色'); other.type = 'button'; other.className = 'mindmap-swatch mindmap-swatch-other'; other.hidden = true;
@@ -44,11 +48,15 @@ export function mountEditor(container: HTMLElement, host: ScopedHost<MindmapDocu
   other.setAttribute('role','radio'); other.setAttribute('aria-label','いまの色');
   palette.append(paletteTitle, ...swatches.map(s => s.b), other);
   function showColor() { const known = swatches.some(s => s.value === color.value); other.hidden = known; if (!known) other.style.setProperty('--swatch', color.value); for (const s of swatches) s.b.setAttribute('aria-checked', String(s.value === color.value)); other.setAttribute('aria-checked', String(!known)); }
+  // 印は名前付きのチェックボックスで選ぶ。4つ選ぶと残りは選べなくなる。見本に無い値は残す
+  const markSet = el('fieldset'); markSet.className = 'mindmap-marks'; markSet.append(el('legend','印'));
+  const markBoxes = MARKS.map(([value, title]) => { const c = el('input'); c.type = 'checkbox'; c.value = value; const l = el('label'); l.append(c, document.createTextNode(title)); markSet.append(l); c.onchange = () => { const current = marks.value ? marks.value.split(', ') : []; const unknown = current.filter(m => !MARKS.some(([v]) => v === m)); marks.value = [...markBoxes.filter(b => b.checked).map(b => b.value), ...unknown].join(', '); showMarks(); }; return c; });
+  function showMarks() { const current = marks.value ? marks.value.split(', ') : []; for (const b of markBoxes) { b.checked = current.includes(b.value); b.disabled = readonly || !host.read().nodes[selected] || (!b.checked && current.length >= MAX_MARKS); } }
   const label = (title: string, input: HTMLElement) => { const l = el('label',title); l.append(input); return l; };
   const apply = el('button','適用'); apply.type = 'submit'; const cancel = button('取消', () => draw(true));
   const branchActions = el('div'); branchActions.className = 'mindmap-branch-actions';
   panelFields.className = 'mindmap-panel-fields'; panel.append(panelFields);
-  panelFields.append(heading,label('名前',name),palette,color,label('印（カンマ区切り）',marks),label('メモ',note),apply,cancel,branchActions);
+  panelFields.append(heading,label('名前',name),palette,color,markSet,marks,label('メモ',note),apply,cancel,branchActions);
   function dirty() { if (!snapshot) return false; const n = JSON.parse(snapshot); return name.value !== n.text || color.value !== (n.color ?? '') || marks.value !== (n.marks ?? []).join(', ') || note.value !== (n.note ?? ''); }
   const guard = (event: BeforeUnloadEvent) => { if (dirty()) { event.preventDefault(); event.returnValue = ''; } };
   window.addEventListener('beforeunload', guard);
@@ -57,7 +65,7 @@ export function mountEditor(container: HTMLElement, host: ScopedHost<MindmapDocu
     const commands: EditorCommand<MindmapDocument>[] = [];
     if (name.value !== n.text) commands.push(renameNode(selected,name.value));
     if (color.value !== (n.color ?? '')) commands.push(colorNode(selected,color.value || undefined));
-    const newMarks = marks.value ? marks.value.split(',').map(x => x.trim()) as Mark[] : undefined;
+    const newMarks = marks.value ? marks.value.split(', ') as Mark[] : undefined;
     if (JSON.stringify(newMarks ?? []) !== JSON.stringify(n.marks ?? [])) commands.push(markNode(selected,newMarks));
     if (note.value !== (n.note ?? '')) commands.push(noteNode(selected,note.value || undefined));
     if (!commands.length) { status.textContent = '変更がありません。'; return; }
@@ -70,6 +78,7 @@ export function mountEditor(container: HTMLElement, host: ScopedHost<MindmapDocu
     for (const control of [name,color,marks,note,apply,cancel,...swatches.map(s => s.b),other]) control.disabled = readonly || !n;
     layoutSelect.value = layout;
     if (n && (reset || !snapshot)) { snapshot = JSON.stringify(n); name.value = n.text; color.value = n.color ?? ''; showColor(); marks.value = (n.marks ?? []).join(', '); note.value = n.note ?? ''; }
+    showMarks();
     map.replaceChildren(); const canvas = el('div'); canvas.className = 'mindmap-canvas'; map.append(canvas);
     const visible: { id: string; depth: number; side: number; order: number; parent?: string }[] = [];
     function visit(id: string, depth: number, side: number, parent?: string) { const x = d.nodes[id]; const order = visible.length; visible.push({id,depth,side,order,parent}); if (!(folded.get(id) ?? x.collapsed ?? false)) x.children.forEach((c,i) => visit(c,depth+1, depth === 0 && layout === 'radial' ? (d.nodes[c].side === 'left' || (!d.nodes[c].side && i % 2) ? -1 : 1) : side,id)); }
@@ -80,7 +89,7 @@ export function mountEditor(container: HTMLElement, host: ScopedHost<MindmapDocu
     const width = Math.max(map.clientWidth - 22, maxX - minX + 220), height = Math.max(300, maxY + 100); canvas.style.width = `${width}px`; canvas.style.height = `${height}px`;
     const svg = document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.setAttribute('width',String(width)); svg.setAttribute('height',String(height)); svg.classList.add('mindmap-lines'); canvas.append(svg);
     for (const [i, v] of visible.entries()) { const pos = positions.get(v.id)!; if (v.parent) { const p = positions.get(v.parent)!; const line = document.createElementNS(svg.namespaceURI,'line'); line.setAttribute('x1',String(p.x+60)); line.setAttribute('y1',String(p.y+18)); line.setAttribute('x2',String(pos.x+60)); line.setAttribute('y2',String(pos.y+18)); line.setAttribute('stroke','#a6b2c2'); svg.append(line); }
-      const item = button(d.nodes[v.id].text || '（無題）', () => { if (selected !== v.id) { if (dirty()) { status.textContent = '未確定の入力を適用または取り消してください。'; return; } selected = v.id; snapshot = ''; draw(true); } }); item.className = 'mindmap-node'; item.style.left = `${pos.x}px`; item.style.top = `${pos.y}px`; if (d.nodes[v.id].color) item.style.borderColor = d.nodes[v.id].color!; item.setAttribute('aria-pressed',String(v.id === selected)); item.dataset.nodeId = v.id;
+      const item = button(d.nodes[v.id].text || '（無題）', () => { if (selected !== v.id) { if (dirty()) { status.textContent = '未確定の入力を適用または取り消してください。'; return; } selected = v.id; snapshot = ''; draw(true); } }); const nodeMarks = d.nodes[v.id].marks ?? []; if (nodeMarks.length) { const badges = el('span'); badges.className = 'mindmap-badges'; for (const m of nodeMarks) { const b = el('span', markName(m)); b.className = `mindmap-badge mindmap-badge-${m}`; badges.append(b); } badges.setAttribute('aria-hidden','true'); item.append(badges); item.title = `印: ${nodeMarks.map(markName).join('、')}`; } item.className = 'mindmap-node'; item.style.left = `${pos.x}px`; item.style.top = `${pos.y}px`; if (d.nodes[v.id].color) item.style.borderColor = d.nodes[v.id].color!; item.setAttribute('aria-pressed',String(v.id === selected)); item.dataset.nodeId = v.id;
       item.onkeydown = e => { if (e.isComposing || composing || e.keyCode === 229) return; if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); history(e.shiftKey); return; } if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); add(true); } else if (e.key === 'Enter') { e.preventDefault(); add(false); } else if (e.key === 'F2') { e.preventDefault(); name.focus(); } else if (e.key === 'Delete') { e.preventDefault(); remove(); } else if (e.key === ' ') { e.preventDefault(); toggle(v.id); } else if (e.key.startsWith('Arrow')) { e.preventDefault(); const next = visible[Math.max(0,Math.min(visible.length-1,i + (e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 1)))]; selected = next.id; snapshot = ''; draw(true); map.querySelector<HTMLButtonElement>(`[data-node-id="${next.id}"]`)?.focus(); } }; canvas.append(item);
     }
     if (n?.children.length) { const fold = button((folded.get(selected) ?? n.collapsed) ? '開く' : '畳む', () => toggle(selected)); map.append(fold); }

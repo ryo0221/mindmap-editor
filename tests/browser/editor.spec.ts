@@ -217,3 +217,24 @@ test('picks a branch color from the palette without color codes and keeps it aft
   await page.locator('#readonly').check();
   await expect(palette.getByRole('radio', { name: '赤' })).toBeDisabled();
 });
+
+test('picks branch marks by Japanese name, shows them on the map and allows at most four', async ({ page }) => {
+  await page.getByRole('button', { name: '子を足す' }).click();
+  const marks = page.getByRole('group', { name: '印' });
+  await expect(marks.getByRole('checkbox')).toHaveCount(7);
+  for (const name of ['疑問', 'アイデア', 'リスク', 'やること']) await marks.getByRole('checkbox', { name }).check();
+  await expect(marks.getByRole('checkbox', { name: '重要' })).toBeDisabled();
+  await expect(marks.getByRole('checkbox', { name: 'リスク' })).toBeEnabled();
+  await page.getByRole('button', { name: '適用', exact: true }).click();
+  const branch = page.locator('.mindmap-node').last();
+  await expect(branch.locator('.mindmap-badge')).toHaveText(['疑問', 'アイデア', 'リスク', 'やること']);
+  await expect.poll(async () => { const d = JSON.parse((await page.locator('#native-data').textContent())!); return Object.values(d.nodes as Record<string, { marks?: string[] }>).find(n => n.marks)?.marks; }).toEqual(['question', 'idea', 'risk', 'todo']);
+  await page.getByRole('button', { name: '保存', exact: true }).click();
+  await page.getByRole('button', { name: '再読み込み' }).click();
+  await page.locator('.mindmap-node').last().click();
+  await expect(marks.getByRole('checkbox', { name: 'リスク' })).toBeChecked();
+  await marks.getByRole('checkbox', { name: 'リスク' }).uncheck();
+  await expect(marks.getByRole('checkbox', { name: '重要' })).toBeEnabled();
+  await page.locator('#readonly').check();
+  await expect(marks.getByRole('checkbox', { name: '決定' })).toBeDisabled();
+});

@@ -362,6 +362,15 @@
       ],
       "方法": "tests/browser/editor.spec.ts: picks a branch color from the palette without color codes and keeps it after reload",
       "結果": "通った"
+    },
+    {
+      "id": "TS-033",
+      "試験": "枝の印を日本語の名前のチェックボックスで選び、地図の枝に見せ、4つまでに抑える。保存・再読込で残り、読み取り専用では選べない",
+      "対象": [
+        "CAP-03"
+      ],
+      "方法": "tests/browser/editor.spec.ts: picks branch marks by Japanese name, shows them on the map and allows at most four",
+      "結果": "通った"
     }
   ],
   "対象外の能力": [
