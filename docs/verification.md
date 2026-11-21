@@ -153,3 +153,14 @@ root契約: `1.0.0-draft.1`、operations add-on: `operations@0-draft`。
 - 初回のブラウザ試験はブラウザ未配置で14件とも起動できず、ダウンロードも接続先へのアクセス拒否で失敗した。上記の再実行は環境にあるChromeを使用した。
 
 対応表の未実施項目を含むため、全仕様を検証済みとはしない。実PaoBubへの接続はこの実行に含まない。
+
+### 試験対応の追加確認（2026-11-21）
+
+基準 commit `bf02608fad45421d5dee39e346ba1c04d0ce7f77` に、この作業の未コミット変更を加えた状態で実行した。
+
+- `npm run check`：成功。
+- `npx vitest run tests/mindmap-trace.test.ts tests/mindmap.test.ts tests/operations.test.ts`：3ファイル、17件成功。
+- `npm test`：7ファイル、26件成功。
+- `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/google-chrome npm run test:e2e`：デスクトップ・スマホ幅で計14件成功。
+
+操作の履歴・保存、読み取り専用の一時展開、IDの再利用防止などには未実施の試験が残る。全仕様を対応済みとはしない。
