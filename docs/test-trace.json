@@ -1,0 +1,380 @@
+{
+  "試験の対応表": "試験",
+  "範囲": "各試験が示す部分のみ確認した。IDの再利用防止は同じページ内で観測・発行したIDを対象とし、ページ再読み込みをまたぐ削除済みIDの保持は未対応。仕様全体を対応済みとはしない。",
+  "test": [
+    {
+      "id": "TS-001",
+      "試験": "正常な形式を受け入れる",
+      "対象": [
+        "OP-08",
+        "IV-01"
+      ],
+      "方法": "tests/mindmap.test.ts: valid.json と valid-rich.json",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-002",
+      "試験": "版違いを拒否する",
+      "対象": [
+        "OP-08",
+        "IV-01"
+      ],
+      "方法": "tests/mindmap.test.ts: wrong-version.json",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-003",
+      "試験": "根がない文書を拒否する",
+      "対象": [
+        "OP-08",
+        "IV-02"
+      ],
+      "方法": "tests/mindmap.test.ts: missing-root.json",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-004",
+      "試験": "親の重複を拒否する",
+      "対象": [
+        "OP-08",
+        "IV-03"
+      ],
+      "方法": "tests/mindmap.test.ts: two-parents.json",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-005",
+      "試験": "循環する文書を拒否する",
+      "対象": [
+        "OP-08",
+        "IV-04"
+      ],
+      "方法": "tests/mindmap.test.ts: cycle.json",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-006",
+      "試験": "本文の上限超過を拒否する",
+      "対象": [
+        "OP-01",
+        "CM-02",
+        "LM-04"
+      ],
+      "方法": "tests/mindmap.test.ts: over-limit.json と変更時の拒否",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-007",
+      "試験": "根の削除を拒否する",
+      "対象": [
+        "OP-05",
+        "CM-05",
+        "IV-02"
+      ],
+      "方法": "tests/mindmap.test.ts: root deletion",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-008",
+      "試験": "子孫の下への移動を拒否する",
+      "対象": [
+        "OP-02",
+        "CM-04",
+        "IV-04"
+      ],
+      "方法": "tests/mindmap.test.ts: descendant moves",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-009",
+      "試験": "古い元データへの提案を拒否する",
+      "対象": [
+        "OP-06",
+        "CAP-05"
+      ],
+      "方法": "tests/mindmap.test.ts: proposal base changed",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-010",
+      "試験": "複数操作を変更せずに準備し適用する",
+      "対象": [
+        "OP-06",
+        "CM-01",
+        "CM-02",
+        "CAP-05"
+      ],
+      "方法": "tests/operations.test.ts: bounded schema and sequence",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-011",
+      "試験": "不正な操作群を原子的に拒否する",
+      "対象": [
+        "OP-06",
+        "CM-05",
+        "CAP-05"
+      ],
+      "方法": "tests/operations.test.ts: invalid operations atomically",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-012",
+      "試験": "追加・編集・保存と再読込",
+      "対象": [
+        "OP-01",
+        "OP-08",
+        "CM-01",
+        "CM-02",
+        "CAP-01",
+        "CAP-07"
+      ],
+      "方法": "tests/browser/editor.spec.ts: edits, undoes, saves and reopens",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-013",
+      "試験": "提案の確認・採用とUndo",
+      "対象": [
+        "OP-06",
+        "CAP-04",
+        "CAP-05"
+      ],
+      "方法": "tests/browser/editor.spec.ts: previews and applies",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-014",
+      "試験": "変換中Enterと追加のUndo/RedoのID",
+      "対象": [
+        "OP-01",
+        "CM-01",
+        "IV-05",
+        "CAP-04"
+      ],
+      "方法": "tests/browser/editor.spec.ts: composition Enter",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-015",
+      "試験": "読み取り専用の画面と古い提案の採用拒否",
+      "対象": [
+        "OP-07",
+        "OP-06",
+        "CAP-06",
+        "CAP-05"
+      ],
+      "方法": "tests/browser/editor.spec.ts: read-only prevents changes",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-016",
+      "試験": "左右配置の左端とスマホ幅の配置",
+      "対象": [
+        "CAP-02"
+      ],
+      "方法": "tests/browser/editor.spec.ts: left branch",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-017",
+      "試験": "並べ替え・親の変更と子孫の保持",
+      "対象": [
+        "OP-02",
+        "CM-03",
+        "CM-04",
+        "CAP-01",
+        "IV-03",
+        "IV-06"
+      ],
+      "方法": "tests/mindmap-trace.test.ts: reorders and moves a subtree, preserving children and side rules",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-018",
+      "試験": "折りたたみの変更と葉の拒否",
+      "対象": [
+        "OP-03",
+        "CM-06",
+        "CAP-02"
+      ],
+      "方法": "tests/mindmap-trace.test.ts: changes folding and rejects folding a leaf",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-019",
+      "試験": "色・印・メモと閉じた形式の検証",
+      "対象": [
+        "OP-04",
+        "CM-07",
+        "CM-08",
+        "CM-09",
+        "CAP-03",
+        "IV-07",
+        "LM-05",
+        "LM-06"
+      ],
+      "方法": "tests/mindmap-trace.test.ts: validates color, marks, note and unknown fields",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-020",
+      "試験": "配置の変更と不正値の拒否",
+      "対象": [
+        "OP-03",
+        "CM-10",
+        "CAP-02"
+      ],
+      "方法": "tests/mindmap-trace.test.ts: changes layout and rejects unknown layouts",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-021",
+      "試験": "ノード数・深さ・子数の境界",
+      "対象": [
+        "LM-01",
+        "LM-02",
+        "LM-03"
+      ],
+      "方法": "tests/mindmap-trace.test.ts: enforces node count, depth and child count boundaries",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-022",
+      "試験": "参照と容量の境界",
+      "対象": [
+        "LM-07",
+        "LM-08"
+      ],
+      "方法": "tests/mindmap-trace.test.ts: enforces reference and canonical byte limits",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-023",
+      "試験": "IDの形式・一致と発行済みIDの再利用防止",
+      "対象": [
+        "OP-01",
+        "IV-05",
+        "CAP-01"
+      ],
+      "方法": "tests/mindmap-trace.test.ts: TS-023 rejects malformed and mismatched node IDs; tests/browser/editor.spec.ts: TS-023 does not reuse an issued ID after undo when random bytes repeat; tests/surface.test.ts: does not reuse an issued ID after deletion when random bytes repeat。同じページ内の確認。",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-024",
+      "試験": "外部操作の読み取り専用拒否",
+      "対象": [
+        "OP-07",
+        "OP-06",
+        "CAP-06"
+      ],
+      "方法": "tests/host.test.ts: TS-024 rejects a prepared proposal after permission is revoked without changing content or history",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-025",
+      "試験": "保存失敗時に変更を保持する",
+      "対象": [
+        "OP-08",
+        "CAP-07"
+      ],
+      "方法": "tests/host.test.ts: TS-025 retains a failed save and persists it on retry; tests/browser/editor.spec.ts: TS-025 displays a save failure and retries without losing the edit",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-026",
+      "試験": "並べ替え・親変更のUndoとRedo",
+      "対象": [
+        "OP-02",
+        "CM-03",
+        "CM-04",
+        "CAP-04"
+      ],
+      "方法": "tests/host.test.ts: TS-026 reverses and reapplies reorder and subtree moves and saves them",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-027",
+      "試験": "読み取り専用での一時的な折りたたみと履歴・保存内容",
+      "対象": [
+        "OP-03",
+        "OP-07",
+        "CM-06",
+        "CAP-02",
+        "CAP-06"
+      ],
+      "方法": "tests/browser/editor.spec.ts: TS-027 allows temporary folding in read-only without changing history or saved content",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-028",
+      "試験": "色・印・メモの変更のUndoとRedo",
+      "対象": [
+        "OP-04",
+        "CM-07",
+        "CM-08",
+        "CM-09",
+        "CAP-03",
+        "CAP-04"
+      ],
+      "方法": "tests/host.test.ts: TS-028 reverses and reapplies color marks and note and saves them",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-029",
+      "試験": "配置変更の保存とUndo・Redo",
+      "対象": [
+        "OP-03",
+        "CM-10",
+        "CAP-02",
+        "CAP-04"
+      ],
+      "方法": "tests/browser/editor.spec.ts: TS-029 saves layout changes and restores them through undo and redo",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-030",
+      "試験": "中心と新しい枝の表示位置・名前欄へのフォーカス",
+      "対象": [
+        "OP-01",
+        "CM-01",
+        "CAP-01"
+      ],
+      "方法": "tests/browser/editor.spec.ts: shows the center and new branch in the map and focuses its name",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-031",
+      "試験": "native JSONの書き出し・再取り込みと不正データの拒否",
+      "対象": [
+        "OP-08",
+        "IV-01",
+        "CAP-07"
+      ],
+      "方法": "tests/browser/editor.spec.ts: exports and reimports native content and rejects invalid data",
+      "結果": "通った"
+    }
+  ],
+  "対象外の能力": [
+    {
+      "対象": "CAP-08",
+      "理由": "対象外: 座標の手動保存や親子以外の枝同士の接続は扱わない。 入口の確認は別途必要。"
+    },
+    {
+      "対象": "CAP-09",
+      "理由": "対象外: 複数人の同時編集や変更の統合は扱わない。 入口の確認は別途必要。"
+    },
+    {
+      "対象": "CAP-10",
+      "理由": "対象外: 画像やファイルを枝に保持しない。 入口の確認は別途必要。"
+    },
+    {
+      "対象": "CAP-11",
+      "理由": "対象外: 定義の作成、検査、承認とAIの呼び出しはEditorの外で行う。 入口の確認は別途必要。"
+    },
+    {
+      "対象": "CAP-12",
+      "理由": "対象外: テンプレート、部品の再利用、他形式の取り込み・書き出し、他の成果物の直接編集は初版で扱わない。 入口の確認は別途必要。"
+    }
+  ]
+}

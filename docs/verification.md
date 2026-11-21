@@ -142,3 +142,61 @@ npm run test:e2e
 root契約: `1.0.0-draft.1`、operations add-on: `operations@0-draft`。
 
 この記録は初期版の確認であり、後の変更に対する継続的な合格宣言ではありません。
+
+## マインドマップの検証（2026-11-21）
+
+基準 commit `0871e999d6861086deddb32c79b36fffe4018e7e` に、この作業の未コミット変更を加えた状態で実行した。
+
+- `npm run check`：成功（型検査と同梱SDKの照合）。
+- `npx vitest run tests/mindmap.test.ts tests/operations.test.ts tests/surface.test.ts`：3ファイル、14件成功。
+- `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/google-chrome npm run test:e2e`：14件成功（デスクトップ・スマホ幅各7件）。その後、左端の試験に保存・再読込を加え、`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/google-chrome npx playwright test -g 'left branch'` で2件成功。
+- 初回のブラウザ試験はブラウザ未配置で14件とも起動できず、ダウンロードも接続先へのアクセス拒否で失敗した。上記の再実行は環境にあるChromeを使用した。
+
+対応表の未実施項目を含むため、全仕様を検証済みとはしない。実PaoBubへの接続はこの実行に含まない。
+
+### 試験対応の追加確認（2026-11-21）
+
+基準 commit `bf02608fad45421d5dee39e346ba1c04d0ce7f77` に、この作業の未コミット変更を加えた状態で実行した。
+
+- `npm run check`：成功。
+- `npx vitest run tests/mindmap-trace.test.ts tests/mindmap.test.ts tests/operations.test.ts`：3ファイル、17件成功。
+- `npm test`：7ファイル、26件成功。
+- `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/google-chrome npm run test:e2e`：デスクトップ・スマホ幅で計14件成功。
+
+操作の履歴・保存、読み取り専用の一時展開、IDの再利用防止などには未実施の試験が残る。全仕様を対応済みとはしない。
+
+### 中川さんの手元での画面試験
+
+実行者: 中川。環境: 手元のPC。対象 commit: `aa76946`。
+
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/opt/pw-browsers/chromium npx playwright test`：デスクトップ7件、モバイル7件の計14件が成功（9.0秒）。
+
+### 追加試験の実行（2026-11-21）
+
+基準 commit `bf8441d26115f39838923499800452835289006f` に未コミットの試験変更を加えた作業ツリーで実行した。
+
+- `npm run check`：成功。
+- `npx vitest run tests/host.test.ts tests/mindmap-trace.test.ts`：2ファイル、14件成功。
+- `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/opt/pw-browsers/chromium npx playwright test --trace off`：デスクトップ・モバイル計22件のうち16件成功、6件失敗。両幅でIDの乱数衝突時の再利用、読み取り専用の折りたたみ、画面の配置変更の本体への反映が失敗した。後続の履歴・保存の検査には到達していない。
+- 直前の実行では、保存後の再読込を待たずに画面を計測した左端の試験も両幅で失敗した。再読込の完了を待つよう試験を修正し、上記の再実行では両幅とも成功した。
+
+失敗した項目を含む範囲は対応済みとはしない。実PaoBubとの接続は試していない。
+
+### 画面の失敗修正の確認（2026-11-21）
+
+基準 commit `64d08b4b09b0a4fac145f052d18e0e93ce78d96f` に未コミットの修正を加えた作業ツリーで実行した。
+
+- `npm run check`：成功。
+- `npx vitest run tests/surface.test.ts tests/mindmap-trace.test.ts`：2ファイル、10件成功。削除後のID再利用防止を追加後、`npx vitest run tests/surface.test.ts`：4件成功。
+- `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/opt/pw-browsers/chromium npx playwright test --trace off`：デスクトップ・モバイル各11件、計22件成功。
+
+発行済みIDの記憶は同じページ内に限られ、ページ再読み込み後の削除済みIDは保持されない。実PaoBubとの接続は試していない。
+
+### 画面試験の対応と検査内容の再確認（2026-11-21）
+
+基準 commit `da262e14c6dbcd5d0ae660f243161736e4bbc51f` に未コミットの試験変更を加えた作業ツリーで実行した。
+
+- `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/opt/pw-browsers/chromium npx playwright test --trace off`：デスクトップ・モバイル各11件、計22件成功。
+- 読み取り専用の畳む・開く前後の内容、Undo・Redoと保存後の再読込、および配置変更の履歴と再読込後の内容を確認した。
+
+実PaoBubとの接続は試していない。

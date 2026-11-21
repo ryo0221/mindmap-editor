@@ -5,7 +5,7 @@ import { ExtensionRegistry } from '@editor-platform/extension-runtime';
 import { mountEditor } from '../src/Editor';
 import { definition } from '../src/extension';
 import { createLocalHost } from '../dev/host';
-import { renameNode } from '../src/mindmap-commands';
+import { deleteNode, renameNode } from '../src/mindmap-commands';
 import type { MindmapDocument } from '../src/mindmap-model';
 import sample from '../fixtures/mindmap/valid.json';
 import { webcrypto } from 'node:crypto';
@@ -28,6 +28,18 @@ it('adds a child and reflects external undo and redo', () => {
   const child = host.editor.content.nodes[id].children[0]; expect(child).toMatch(/^n-[a-f0-9]{32}$/);
   host.handle.api.undo(); vi.advanceTimersByTime(200); expect(container.querySelector(`[data-node-id="${child}"]`)).toBeNull();
   host.handle.api.redo(); vi.advanceTimersByTime(200); expect(container.querySelector(`[data-node-id="${child}"]`)).not.toBeNull();
+});
+it('does not reuse an issued ID after deletion when random bytes repeat', () => {
+  vi.useFakeTimers(); const {host, container, id} = setup();
+  let calls = 0;
+  vi.stubGlobal('crypto', { randomUUID: webcrypto.randomUUID.bind(webcrypto), getRandomValues(array: Uint8Array) { array.fill(++calls <= 2 ? 0x42 : 0x43); return array; } });
+  button(container, '子を足す').click();
+  const first = host.editor.content.nodes[id].children[0];
+  host.handle.api.execute(deleteNode(first)); vi.advanceTimersByTime(200);
+  button(container, '子を足す').click();
+  const second = host.editor.content.nodes[id].children[0];
+  expect(first).toBe('n-' + '42'.repeat(16));
+  expect(second).toBe('n-' + '43'.repeat(16));
 });
 it('keeps pending input and refuses conflicting changes', () => {
   vi.useFakeTimers(); const {host, container, id} = setup();
