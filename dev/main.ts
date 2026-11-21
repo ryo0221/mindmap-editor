@@ -11,8 +11,8 @@ import {
   installVerifiedExtension,
 } from '@editor-platform/extension-runtime/package';
 import { editorPackage, trustedPin } from 'virtual:editor-package';
-import sample from '../fixtures/example.json';
-import { validateDocument, type CardDocument } from '../src/model';
+import sample from '../fixtures/mindmap/valid.json';
+import { validateMindmap, type MindmapDocument } from '../src/mindmap-model';
 import { createLocalHost, type LocalEditorHost } from './host';
 import './styles.css';
 
@@ -20,18 +20,18 @@ const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
   <header class="site-header"><div class="brand"><span class="brand-mark" aria-hidden="true">e.</span><span>Editor Platform <small>DEVELOPER STARTER</small></span></div><span class="local-badge"><span aria-hidden="true">●</span> ローカルで動作</span></header>
   <main class="workspace">
-    <section class="page-heading"><div><p class="eyebrow">YOUR FIRST EDITOR</p><h1>Card Studio</h1><p class="intro">小さなアイデアから、自分だけのEditorへ。</p></div><div id="save-state" class="save-state">準備中</div></section>
+    <section class="page-heading"><div><p class="eyebrow">YOUR FIRST EDITOR</p><h1>Mindmap Studio</h1><p class="intro">小さなアイデアから、自分だけのEditorへ。</p></div><div id="save-state" class="save-state">準備中</div></section>
     <div class="workspace-grid">
       <section class="canvas-panel" aria-label="Editorのプレビュー">
         <div class="host-toolbar"><div class="toolbar-group"><button id="undo" disabled>↶ Undo</button><button id="redo" disabled>↷ Redo</button></div><div class="toolbar-group"><button id="reload" disabled>再読み込み</button><button id="save" class="primary" disabled>保存</button></div></div>
         <p id="readonly-note" class="readonly-note" hidden>読み取り専用です。編集操作はHostで拒否されます。</p>
-        <fieldset id="surface-fieldset"><legend class="sr-only">カードEditor</legend><div id="surface"></div></fieldset>
+        <fieldset id="surface-fieldset"><legend class="sr-only">マインドマップEditor</legend><div id="surface"></div></fieldset>
         <div class="canvas-footer"><span id="artifact-label">サンプルを読み込んでいます</span><div><button id="import" disabled>JSONを取り込む</button><button id="export-document" disabled>PaoBub用JSONを書き出す</button><button id="export" disabled>バックアップを書き出す</button></div></div>
         <input id="file" type="file" accept="application/json,.json" hidden />
       </section>
       <aside class="side-panel">
         <section class="tool-panel" aria-labelledby="proposal-heading"><p class="eyebrow">OPERATIONS</p><h2 id="proposal-heading">AIからの編集を試す</h2><p class="panel-description">固定の操作提案で、確認してから採用する流れを試せます。APIキーは不要です。</p>
-          <form id="proposal-form"><label>対象のカード<select id="proposal-card" required></select></label><label>新しいタイトル<input id="proposal-title" value="街の小さな図書館" required autocomplete="off" /></label><button id="prepare" class="wide-button" disabled>変更をプレビュー</button></form>
+          <form id="proposal-form"><label>対象の枝<select id="proposal-node" required></select></label><label>新しいタイトル<input id="proposal-title" value="新しい名前" required autocomplete="off" /></label><button id="prepare" class="wide-button" disabled>変更をプレビュー</button></form>
           <section id="proposal-preview" class="proposal-preview" hidden aria-label="変更のプレビュー"><span class="preview-label">タイトルの変更</span><p id="proposal-before" class="before-value"></p><p id="proposal-after" class="after-value"></p><p id="proposal-stale" class="stale-message" hidden>内容または権限が変わりました。提案を作り直してください。</p><div class="proposal-actions"><button id="reject">破棄</button><button id="apply" class="primary">採用</button></div></section>
         </section>
         <section class="tool-panel" aria-labelledby="checks-heading"><p class="eyebrow">HOST CONTROLS</p><h2 id="checks-heading">動作を確認する</h2><label class="toggle"><span>読み取り専用</span><input id="readonly" type="checkbox" /></label><label class="toggle"><span>保存エラーを再現</span><input id="save-failure" type="checkbox" /></label><dl class="diagnostics"><div><dt>変更番号</dt><dd id="revision">—</dd></div><div><dt>データ形式</dt><dd id="document-format">—</dd></div></dl><details><summary>現在のデータを見る</summary><pre id="native-data"></pre></details></section>
@@ -52,15 +52,15 @@ const message = (text: string, error = false) => {
 };
 const report = (error: unknown) =>
   message(error instanceof Error ? error.message : '処理を完了できませんでした。', true);
-const storage = new IndexedDBStorage<Artifact<CardDocument>>(
+const storage = new IndexedDBStorage<Artifact<MindmapDocument>>(
   `open-editor-template:${editorPackage.manifest.artifactKind}`,
 );
 const activeKey = `open-editor-template:${editorPackage.manifest.artifactKind}:active`;
 let host: LocalEditorHost;
-let surfaceHandle: ExtensionHandle<CardDocument> | undefined;
+let surfaceHandle: ExtensionHandle<MindmapDocument> | undefined;
 let detach: (() => void) | undefined;
 let detachSaved: (() => void) | undefined;
-let proposal: PreparedOperation<CardDocument> | undefined;
+let proposal: PreparedOperation<MindmapDocument> | undefined;
 let proposalRevision = '';
 let proposalRevoked = false;
 let renderedRevision = '';
@@ -82,13 +82,13 @@ async function main() {
     (id, version) =>
       id === trustedPin.id && version === trustedPin.version ? trustedPin.packageHash : undefined,
   );
-  const loaded = await loadVerifiedExtension<CardDocument>(verified);
+  const loaded = await loadVerifiedExtension<MindmapDocument>(verified);
   const registration = installVerifiedExtension(new ExtensionRegistry(), loaded);
 
   function refresh() {
     const snapshot = host.editor.snapshot;
     const revisionKey = JSON.stringify(snapshot.revision);
-    const surfaceKey = `${revisionKey}:${snapshot.readOnly}`;
+    const surfaceKey = 'mounted';
     // draft.1 has no Surface subscription API. Keep an operation handle alive,
     // and replace only the display handle when the canonical Host content changes.
     if (surfaceKey !== renderedRevision) {
@@ -121,24 +121,24 @@ async function main() {
     button('export').disabled = hostBusy;
     button('export-document').disabled = hostBusy;
     button('import').disabled = snapshot.readOnly || hostBusy;
-    button('prepare').disabled = snapshot.readOnly || hostBusy || !snapshot.content.cards.length;
+    button('prepare').disabled = snapshot.readOnly || hostBusy || !Object.keys(snapshot.content.nodes).length;
     get('revision').textContent = String(snapshot.revision.sequence);
     get('document-format').textContent =
       `${snapshot.content.artifactKind}@${snapshot.content.schemaVersion}`;
     get('native-data').textContent = JSON.stringify(snapshot.content, null, 2);
     get('artifact-label').textContent =
-      `${snapshot.content.cards.length}枚のカード · このブラウザに保存`;
-    const select = get<HTMLSelectElement>('proposal-card');
+      `${Object.keys(snapshot.content.nodes).length}個の枝 · このブラウザに保存`;
+    const select = get<HTMLSelectElement>('proposal-node');
     const oldValue = select.value;
     select.replaceChildren(
-      ...snapshot.content.cards.map((card) => {
+      ...Object.values(snapshot.content.nodes).map((node) => {
         const option = document.createElement('option');
-        option.value = card.id;
-        option.textContent = card.title;
+        option.value = node.id;
+        option.textContent = node.text;
         return option;
       }),
     );
-    if (snapshot.content.cards.some((card) => card.id === oldValue)) select.value = oldValue;
+    if (Object.hasOwn(snapshot.content.nodes, oldValue)) select.value = oldValue;
     const stale = !!proposal && (revisionKey !== proposalRevision || proposalRevoked);
     get('proposal-stale').hidden = !stale;
     button('apply').disabled = !proposal || stale || snapshot.readOnly || hostBusy;
@@ -181,11 +181,11 @@ async function main() {
     refresh();
   }
   function sampleArtifact() {
-    validateDocument(sample);
-    return createArtifact(registration.manifest.artifactKind, 'Card Studio', sample);
+    validateMindmap(sample);
+    return createArtifact(registration.manifest.artifactKind, 'Mindmap Studio', sample);
   }
   async function openInitial(fresh = false) {
-    let saved: Artifact<CardDocument> | undefined;
+    let saved: Artifact<MindmapDocument> | undefined;
     if (!fresh) {
       const id = localStorage.getItem(activeKey);
       if (id) saved = await storage.get(id);
@@ -195,7 +195,7 @@ async function main() {
     get('recover').hidden = true;
     message(
       saved
-        ? '前回保存したカードを開きました。'
+        ? '前回保存したマインドマップを開きました。'
         : 'サンプルを編集してみましょう。保存すると、このブラウザで再度開けます。',
     );
   }
@@ -244,16 +244,12 @@ async function main() {
     event.preventDefault();
     if (!ready) return;
     try {
-      const id = get<HTMLSelectElement>('proposal-card').value;
+      const id = get<HTMLSelectElement>('proposal-node').value;
       proposal = host.prepareRename(id, input('proposal-title').value);
       proposalRevision = JSON.stringify(host.editor.revision);
       proposalRevoked = false;
-      get('proposal-before').textContent = proposal.base.cards.find(
-        (card) => card.id === id,
-      )!.title;
-      get('proposal-after').textContent = proposal.candidate.cards.find(
-        (card) => card.id === id,
-      )!.title;
+      get('proposal-before').textContent = proposal.base.nodes[id].text;
+      get('proposal-after').textContent = proposal.candidate.nodes[id].text;
       get('proposal-preview').hidden = false;
       refresh();
       message('変更をプレビューしています。現在のデータはまだ変更されていません。');
@@ -283,12 +279,12 @@ async function main() {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }
   button('export').onclick = act(async () => {
-    downloadJson(await host.exportNative(), 'cards.artifact.json');
+    downloadJson(await host.exportNative(), 'mindmap.artifact.json');
     message('保存版を含むバックアップを書き出しました。');
   });
   button('export-document').onclick = act(() => {
-    downloadJson(host.exportDocument(), 'cards.json');
-    message('PaoBubで開くためのカードJSONを書き出しました。登録済みの同じEditorを使用してください。');
+    downloadJson(host.exportDocument(), 'mindmap.json');
+    message('PaoBubで開くためのマインドマップJSONを書き出しました。登録済みの同じEditorを使用してください。');
   });
   button('import').onclick = () => input('file').click();
   input('file').onchange = act(async () => {

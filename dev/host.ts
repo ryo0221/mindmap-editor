@@ -11,25 +11,20 @@ import {
   type Registration,
 } from '@editor-platform/extension-runtime';
 import { artifactEditorHost } from '@editor-platform/extension-runtime/editor-host';
-import {
-  CARD_ARTIFACT_KIND,
-  CARD_SCHEMA_VERSION,
-  isCardDocument,
-  validateDocument,
-  type CardDocument,
-} from '../src/model';
+import { MINDMAP_ARTIFACT_KIND, MINDMAP_SCHEMA_VERSION, isMindmapDocument, validateMindmap, type MindmapDocument } from '../src/mindmap-model';
+import { fingerprint } from '../src/operations';
 
 export interface LocalEditorHost {
-  readonly editor: ArtifactEditor<CardDocument>;
-  readonly handle: ExtensionHandle<CardDocument>;
+  readonly editor: ArtifactEditor<MindmapDocument>;
+  readonly handle: ExtensionHandle<MindmapDocument>;
   setReadOnly(value: boolean): void;
   setSaveFailure(value: boolean): void;
-  prepareRename(id: string, title: string): PreparedOperation<CardDocument>;
+  prepareRename(id: string, title: string): PreparedOperation<MindmapDocument>;
   save(): Promise<void>;
   exportNative(): Promise<string>;
   exportDocument(): string;
-  parseNative(json: string): Promise<Artifact<CardDocument>>;
-  parseImport(json: string): Promise<CardDocument>;
+  parseNative(json: string): Promise<Artifact<MindmapDocument>>;
+  parseImport(json: string): Promise<MindmapDocument>;
   reopenSaved(): Promise<LocalEditorHost>;
   close(discard?: boolean): void;
 }
@@ -39,22 +34,22 @@ export interface LocalEditorHost {
  * The Editor receives only handle.api. Do not add a second history or save path.
  */
 export function createLocalHost(
-  registration: Registration<CardDocument>,
-  artifact: Artifact<CardDocument>,
-  storage: Pick<StorageAdapter<Artifact<CardDocument>>, 'get' | 'put'>,
+  registration: Registration<MindmapDocument>,
+  artifact: Artifact<MindmapDocument>,
+  storage: Pick<StorageAdapter<Artifact<MindmapDocument>>, 'get' | 'put'>,
 ): LocalEditorHost {
   if (
-    registration.manifest.artifactKind !== CARD_ARTIFACT_KIND ||
-    registration.manifest.schemaVersion !== CARD_SCHEMA_VERSION
+    registration.manifest.artifactKind !== MINDMAP_ARTIFACT_KIND ||
+    registration.manifest.schemaVersion !== MINDMAP_SCHEMA_VERSION
   ) {
-    throw new Error(`このサンプルは ${CARD_ARTIFACT_KIND}@${CARD_SCHEMA_VERSION} に対応しています。`);
+    throw new Error(`このサンプルは ${MINDMAP_ARTIFACT_KIND}@${MINDMAP_SCHEMA_VERSION} に対応しています。`);
   }
   let readOnly = false;
   let permissionEpoch = 0;
   let saveFailure = false;
-  const adapter: EditorHostAdapter<CardDocument> = {
+  const adapter: EditorHostAdapter<MindmapDocument> = {
     kind: registration.manifest.artifactKind,
-    validate: isCardDocument,
+    validate: isMindmapDocument,
     capabilities: {
       undo: true,
       nativeJson: true,
@@ -94,17 +89,17 @@ export function createLocalHost(
       saveFailure = value;
     },
     prepareRename(id, title) {
-      const card = editor.content.cards.find((item) => item.id === id);
-      if (!card) throw new Error('名前を変更するカードを選択してください。');
+      const node = editor.content.nodes[id];
+      if (!node) throw new Error('名前を変更する枝を選択してください。');
       if (!handle.operations) throw new Error('このEditorは操作提案に対応していません。');
       const revision = editor.revision;
       const epoch = permissionEpoch;
       const prepared = handle.operations.prepare(
-        { id: 'rename-card', version: '1.0.0' },
-        { id, before: card.title, title },
+        { id: 'edit-branch', version: '1.0.0' },
+        { before: fingerprint(editor.content), steps: [{ kind: 'rename', id, text: title }] },
       );
       let used = false;
-      const proposal: PreparedOperation<CardDocument> = {
+      const proposal: PreparedOperation<MindmapDocument> = {
         base: prepared.base,
         candidate: prepared.candidate,
         commit(context) {
@@ -128,7 +123,7 @@ export function createLocalHost(
       return (await editor.export('native-json')) as string;
     },
     exportDocument() {
-      validateDocument(editor.content);
+      validateMindmap(editor.content);
       return JSON.stringify(editor.content, null, 2) + '\n';
     },
     parseNative(json) {
@@ -136,8 +131,8 @@ export function createLocalHost(
     },
     async parseImport(json) {
       const value: unknown = JSON.parse(json);
-      if (value && typeof value === 'object' && 'cards' in value) {
-        validateDocument(value);
+      if (value && typeof value === 'object' && 'nodes' in value) {
+        validateMindmap(value);
         return value;
       }
       return (await loadHostArtifact(json, adapter)).draft.content;
