@@ -198,3 +198,22 @@ test('TS-029 saves layout changes and restores them through undo and redo', asyn
   await expect(page.getByLabel('配置', { exact: true })).toHaveValue('tree');
   await expect.poll(async () => JSON.parse((await page.locator('#native-data').textContent())!).layout).toBe('tree');
 });
+
+test('picks a branch color from the palette without color codes and keeps it after reload', async ({ page }) => {
+  await page.getByRole('button', { name: '子を足す' }).click();
+  const palette = page.getByRole('radiogroup', { name: '色' });
+  await expect(palette.getByRole('radio')).toHaveCount(10);
+  await expect(palette.getByRole('radio', { name: '色なし' })).toHaveAttribute('aria-checked', 'true');
+  await expect(page.getByText(/#[0-9a-f]{6}/i)).toHaveCount(0);
+  await palette.getByRole('radio', { name: '青' }).click();
+  await expect(palette.getByRole('radio', { name: '青' })).toHaveAttribute('aria-checked', 'true');
+  await page.getByRole('button', { name: '適用', exact: true }).click();
+  const branch = page.locator('.mindmap-node').last();
+  await expect(branch).toHaveCSS('border-top-color', 'rgb(61, 111, 196)');
+  await page.getByRole('button', { name: '保存', exact: true }).click();
+  await page.getByRole('button', { name: '再読み込み' }).click();
+  await page.locator('.mindmap-node').last().click();
+  await expect(palette.getByRole('radio', { name: '青' })).toHaveAttribute('aria-checked', 'true');
+  await page.locator('#readonly').check();
+  await expect(palette.getByRole('radio', { name: '赤' })).toBeDisabled();
+});

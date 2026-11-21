@@ -8,6 +8,8 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, text?: string): HTMLE
   const e = document.createElement(tag); if (text !== undefined) e.textContent = text; return e;
 }
 function randomId(): string { return 'n-' + Array.from(crypto.getRandomValues(new Uint8Array(16)), n => n.toString(16).padStart(2, '0')).join(''); }
+/** 色見本（見せる名前と保存する色）。先頭は色なし。 */
+export const PALETTE: readonly (readonly [string, string])[] = [['色なし',''],['赤','#d64545'],['橙','#e8862a'],['黄','#d9b310'],['緑','#3a9d5d'],['水色','#2fa4c9'],['青','#3d6fc4'],['紫','#8a5cc2'],['桃','#d9669b'],['灰','#7a8594']];
 const issuedByDocument = new Map<string, Set<string>>();
 export function mountEditor(container: HTMLElement, host: ScopedHost<MindmapDocument>): () => void {
   const root = el('section'); root.className = 'mindmap-editor'; root.setAttribute('aria-label', 'マインドマップ');
@@ -34,12 +36,19 @@ export function mountEditor(container: HTMLElement, host: ScopedHost<MindmapDocu
   layoutSelect.onchange = () => { if (layoutSelect.value !== host.read().layout) perform(setLayout(layoutSelect.value as Layout)); else draw(); };
   toolbar.append(sibling, child, del, undo, redo, layoutSelect);
   const heading = el('h2','枝の情報'), name = el('input'), color = el('input'), marks = el('input'), note = el('textarea');
-  name.setAttribute('aria-label','名前'); color.setAttribute('aria-label','色'); marks.setAttribute('aria-label','印'); note.setAttribute('aria-label','メモ');
+  name.setAttribute('aria-label','名前'); color.type = 'hidden'; marks.setAttribute('aria-label','印'); note.setAttribute('aria-label','メモ');
+  // 色は色見本から選ぶ（色コードは見せない）。見本に無い色が付いた枝は「いまの色」として残し、選び直すまで変えない
+  const palette = el('fieldset'); palette.className = 'mindmap-palette'; palette.setAttribute('role','radiogroup'); palette.setAttribute('aria-label','色');
+  const paletteTitle = el('legend','色'), other = el('button','いまの色'); other.type = 'button'; other.className = 'mindmap-swatch mindmap-swatch-other'; other.hidden = true;
+  const swatches = PALETTE.map(([label, value]) => { const b = el('button'); b.type = 'button'; b.className = 'mindmap-swatch'; b.title = label; b.setAttribute('aria-label',label); b.setAttribute('role','radio'); if (value) b.style.setProperty('--swatch', value); else b.classList.add('mindmap-swatch-none'); b.onclick = () => { color.value = value; showColor(); }; return { b, value }; });
+  other.setAttribute('role','radio'); other.setAttribute('aria-label','いまの色');
+  palette.append(paletteTitle, ...swatches.map(s => s.b), other);
+  function showColor() { const known = swatches.some(s => s.value === color.value); other.hidden = known; if (!known) other.style.setProperty('--swatch', color.value); for (const s of swatches) s.b.setAttribute('aria-checked', String(s.value === color.value)); other.setAttribute('aria-checked', String(!known)); }
   const label = (title: string, input: HTMLElement) => { const l = el('label',title); l.append(input); return l; };
   const apply = el('button','適用'); apply.type = 'submit'; const cancel = button('取消', () => draw(true));
   const branchActions = el('div'); branchActions.className = 'mindmap-branch-actions';
   panelFields.className = 'mindmap-panel-fields'; panel.append(panelFields);
-  panelFields.append(heading,label('名前',name),label('色（例 #336699）',color),label('印（カンマ区切り）',marks),label('メモ',note),apply,cancel,branchActions);
+  panelFields.append(heading,label('名前',name),palette,color,label('印（カンマ区切り）',marks),label('メモ',note),apply,cancel,branchActions);
   function dirty() { if (!snapshot) return false; const n = JSON.parse(snapshot); return name.value !== n.text || color.value !== (n.color ?? '') || marks.value !== (n.marks ?? []).join(', ') || note.value !== (n.note ?? ''); }
   const guard = (event: BeforeUnloadEvent) => { if (dirty()) { event.preventDefault(); event.returnValue = ''; } };
   window.addEventListener('beforeunload', guard);
@@ -58,9 +67,9 @@ export function mountEditor(container: HTMLElement, host: ScopedHost<MindmapDocu
   function draw(reset = false) {
     const d = host.read(); Object.keys(d.nodes).forEach(id => issued.add(id)); layout = d.layout; last = JSON.stringify(d); if (!d.nodes[selected] && (reset || !snapshot || !dirty())) { selected = d.rootId; snapshot = ''; }
     const n = d.nodes[selected]; sibling.disabled = readonly || selected === d.rootId; child.disabled = readonly || !n; del.disabled = readonly || selected === d.rootId || !n; undo.disabled = redo.disabled = readonly;
-    for (const control of [name,color,marks,note,apply,cancel]) control.disabled = readonly || !n;
+    for (const control of [name,color,marks,note,apply,cancel,...swatches.map(s => s.b),other]) control.disabled = readonly || !n;
     layoutSelect.value = layout;
-    if (n && (reset || !snapshot)) { snapshot = JSON.stringify(n); name.value = n.text; color.value = n.color ?? ''; marks.value = (n.marks ?? []).join(', '); note.value = n.note ?? ''; }
+    if (n && (reset || !snapshot)) { snapshot = JSON.stringify(n); name.value = n.text; color.value = n.color ?? ''; showColor(); marks.value = (n.marks ?? []).join(', '); note.value = n.note ?? ''; }
     map.replaceChildren(); const canvas = el('div'); canvas.className = 'mindmap-canvas'; map.append(canvas);
     const visible: { id: string; depth: number; side: number; order: number; parent?: string }[] = [];
     function visit(id: string, depth: number, side: number, parent?: string) { const x = d.nodes[id]; const order = visible.length; visible.push({id,depth,side,order,parent}); if (!(folded.get(id) ?? x.collapsed ?? false)) x.children.forEach((c,i) => visit(c,depth+1, depth === 0 && layout === 'radial' ? (d.nodes[c].side === 'left' || (!d.nodes[c].side && i % 2) ? -1 : 1) : side,id)); }

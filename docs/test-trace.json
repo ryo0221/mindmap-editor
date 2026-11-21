@@ -353,6 +353,15 @@
       ],
       "方法": "tests/browser/editor.spec.ts: exports and reimports native content and rejects invalid data",
       "結果": "通った"
+    },
+    {
+      "id": "TS-032",
+      "試験": "枝の色を色見本から選び、色コードを見せずに保存・再読込で残す。読み取り専用では選べない",
+      "対象": [
+        "CAP-03"
+      ],
+      "方法": "tests/browser/editor.spec.ts: picks a branch color from the palette without color codes and keeps it after reload",
+      "結果": "通った"
     }
   ],
   "対象外の能力": [
