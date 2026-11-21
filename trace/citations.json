@@ -322,5 +322,16 @@
       "to": "OP-06"
     }
   ],
-  "exemptions": []
+  "exemptions": [
+    {
+      "rule": "operation-covered-by-command",
+      "item": "OP-07",
+      "reason": "読み取り専用で開く操作は内容を変えないため、編集の操作はない。"
+    },
+    {
+      "rule": "operation-covered-by-command",
+      "item": "OP-08",
+      "reason": "保存と読み込みはHostの仕事であり、編集の操作ではない。"
+    }
+  ]
 }
