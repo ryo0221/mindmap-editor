@@ -238,3 +238,26 @@ test('picks branch marks by Japanese name, shows them on the map and allows at m
   await page.locator('#readonly').check();
   await expect(marks.getByRole('checkbox', { name: '決定' })).toBeDisabled();
 });
+
+test('keeps a branch with four marks from overlapping the next branch in every layout', async ({ page }) => {
+  await page.getByRole('button', { name: '子を足す' }).click();
+  await page.getByLabel('名前').fill('A');
+  const marks = page.getByRole('group', { name: '印' });
+  for (const name of ['疑問', 'アイデア', 'リスク', 'やること']) await marks.getByRole('checkbox', { name }).check();
+  await page.getByRole('button', { name: '適用', exact: true }).click();
+  await page.getByRole('button', { name: '枝を足す' }).click();
+  await page.getByLabel('名前').fill('B');
+  await page.getByRole('button', { name: '適用', exact: true }).click();
+  await page.getByRole('button', { name: '子を足す' }).click();
+  await page.getByLabel('名前').fill('C');
+  await page.getByRole('button', { name: '適用', exact: true }).click();
+  for (const layout of ['right', 'radial', 'tree']) {
+    await page.getByLabel('配置', { exact: true }).selectOption(layout);
+    const boxes = await page.locator('.mindmap-node').evaluateAll(nodes => nodes.map(n => { const r = n.getBoundingClientRect(); return { left: r.left, right: r.right, top: r.top, bottom: r.bottom }; }));
+    for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {
+      const a = boxes[i], b = boxes[j];
+      const overlap = a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+      expect(overlap, `${layout}: ${i} and ${j}`).toBe(false);
+    }
+  }
+});

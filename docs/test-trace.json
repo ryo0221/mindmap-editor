@@ -371,6 +371,15 @@
       ],
       "方法": "tests/browser/editor.spec.ts: picks branch marks by Japanese name, shows them on the map and allows at most four",
       "結果": "通った"
+    },
+    {
+      "id": "TS-034",
+      "試験": "印を4つ付けて高くなった枝が、左右・右向き・下向きのどの配置でもほかの枝と重ならない",
+      "対象": [
+        "CAP-03"
+      ],
+      "方法": "tests/browser/editor.spec.ts: keeps a branch with four marks from overlapping the next branch in every layout",
+      "結果": "通った"
     }
   ],
   "対象外の能力": [
