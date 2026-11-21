@@ -1,5 +1,20 @@
 # 検証記録
 
+## マインドマップ版 0.1.0
+
+確認日: 2026-11-21。対象 commit: `5c7eb6a8a4536d733104d48257229de5aff58369`。
+
+| 検査 | 結果 |
+| --- | --- |
+| `npm run check` | PASS。SDK固定ソースの照合と型検査 |
+| `npm test` | PASS。6ファイル、18テスト（失敗・スキップなし） |
+| `npm run build:extension` | PASS。拡張とPaoBub向け素材を生成 |
+| `npm run verify:package` | PASS。独立した利用側でpackageの読込、改ざん拒否、提案、履歴、読み取り専用、保存・再読込を確認 |
+
+初回の型検査は依存パッケージが未導入のため停止した。`npm ci --no-audit --no-fund` で依存を導入後、上記を順に実行した。実PaoBubへの接続は今回の検査対象に含まない。
+
+# 過去の版 — カード Editor
+
 ## 0.2.1 — 公開切替後の SDK 固定先更新（ローカル候補）
 
 確認日: 2026-11-19。template main `ba1dcfecb9124e9c39a644b0e9230972dd0fd1a7` のテキスト全件を Git blob hash で照合した隔離コピーを使用。履歴記録の PNG 2 件は未取得で、完全な remote tree の clone ではない。実行環境は Node.js 24.19.0 / npm 11.9.0 / Chromium 151.0.7922.173。
