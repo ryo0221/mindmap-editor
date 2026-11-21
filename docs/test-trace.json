@@ -1,6 +1,6 @@
 {
   "試験の対応表": "試験",
-  "範囲": "各試験が示す部分のみ確認した。画面試験14件の成功はTS-023〜TS-029の検証内容を裏付けないため、これらは未実施のままとし、仕様全体を対応済みとはしない。",
+  "範囲": "各試験が示す部分のみ確認した。TS-023・TS-027・TS-029は落ちており、仕様全体を対応済みとはしない。",
   "test": [
     {
       "id": "TS-001",
@@ -257,8 +257,8 @@
         "IV-05",
         "CAP-01"
       ],
-      "方法": "不正IDと削除・Undo後の新規発行を検証する",
-      "結果": "未実施"
+      "方法": "tests/mindmap-trace.test.ts: TS-023 rejects malformed and mismatched node IDs; tests/browser/editor.spec.ts: TS-023 does not reuse an issued ID after undo when random bytes repeat。形式・一致は通ったが、乱数衝突時のUndo後の再利用防止は落ちた。削除後は未実施。",
+      "結果": "落ちた"
     },
     {
       "id": "TS-024",
@@ -268,8 +268,8 @@
         "OP-06",
         "CAP-06"
       ],
-      "方法": "権限なしで提案採用を拒否し内容と履歴を保つ",
-      "結果": "未実施"
+      "方法": "tests/host.test.ts: TS-024 rejects a prepared proposal after permission is revoked without changing content or history",
+      "結果": "通った"
     },
     {
       "id": "TS-025",
@@ -278,8 +278,8 @@
         "OP-08",
         "CAP-07"
       ],
-      "方法": "保存失敗の表示と再試行を検証する",
-      "結果": "未実施"
+      "方法": "tests/host.test.ts: TS-025 retains a failed save and persists it on retry; tests/browser/editor.spec.ts: TS-025 displays a save failure and retries without losing the edit",
+      "結果": "通った"
     },
     {
       "id": "TS-026",
@@ -290,8 +290,8 @@
         "CM-04",
         "CAP-04"
       ],
-      "方法": "画面またはHostの履歴と保存を検証する",
-      "結果": "未実施"
+      "方法": "tests/host.test.ts: TS-026 reverses and reapplies reorder and subtree moves and saves them",
+      "結果": "通った"
     },
     {
       "id": "TS-027",
@@ -303,8 +303,8 @@
         "CAP-02",
         "CAP-06"
       ],
-      "方法": "画面またはHostの履歴と保存を検証する",
-      "結果": "未実施"
+      "方法": "tests/browser/editor.spec.ts: TS-027 allows temporary folding in read-only without changing history or saved content。折りたたみボタンが無効で、後続の内容・履歴・保存の検査は未到達。",
+      "結果": "落ちた"
     },
     {
       "id": "TS-028",
@@ -317,8 +317,8 @@
         "CAP-03",
         "CAP-04"
       ],
-      "方法": "画面またはHostの履歴と保存を検証する",
-      "結果": "未実施"
+      "方法": "tests/host.test.ts: TS-028 reverses and reapplies color marks and note and saves them",
+      "結果": "通った"
     },
     {
       "id": "TS-029",
@@ -329,8 +329,8 @@
         "CAP-02",
         "CAP-04"
       ],
-      "方法": "画面またはHostの履歴と保存を検証する",
-      "結果": "未実施"
+      "方法": "tests/browser/editor.spec.ts: TS-029 saves layout changes and restores them through undo and redo。画面での変更が本体に反映されず、後続の履歴・保存の検査は未到達。",
+      "結果": "落ちた"
     }
   ],
   "対象外の能力": [

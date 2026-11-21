@@ -170,3 +170,14 @@ root契約: `1.0.0-draft.1`、operations add-on: `operations@0-draft`。
 実行者: 中川。環境: 手元のPC。対象 commit: `aa76946`。
 
 `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/opt/pw-browsers/chromium npx playwright test`：デスクトップ7件、モバイル7件の計14件が成功（9.0秒）。
+
+### 追加試験の実行（2026-11-21）
+
+基準 commit `bf8441d26115f39838923499800452835289006f` に未コミットの試験変更を加えた作業ツリーで実行した。
+
+- `npm run check`：成功。
+- `npx vitest run tests/host.test.ts tests/mindmap-trace.test.ts`：2ファイル、14件成功。
+- `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/opt/pw-browsers/chromium npx playwright test --trace off`：デスクトップ・モバイル計22件のうち16件成功、6件失敗。両幅でIDの乱数衝突時の再利用、読み取り専用の折りたたみ、画面の配置変更の本体への反映が失敗した。後続の履歴・保存の検査には到達していない。
+- 直前の実行では、保存後の再読込を待たずに画面を計測した左端の試験も両幅で失敗した。再読込の完了を待つよう試験を修正し、上記の再実行では両幅とも成功した。
+
+失敗した項目を含む範囲は対応済みとはしない。実PaoBubとの接続は試していない。

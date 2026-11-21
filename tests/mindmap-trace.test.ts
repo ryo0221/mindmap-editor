@@ -5,6 +5,14 @@ import { addNode, reorderNode, moveNode, collapseNode, colorNode, markNode, note
 const doc = () => structuredClone(sample) as MindmapDocument;
 const id = (n: number) => 'n-' + n.toString(16).padStart(32, '0');
 
+it('TS-023 rejects malformed and mismatched node IDs', () => {
+  const malformed = doc(); malformed.nodes[malformed.rootId].id = 'bad';
+  expect(() => validateMindmap(malformed)).toThrow();
+  const mismatch = doc(); mismatch.nodes[mismatch.rootId].id = id(2);
+  expect(() => validateMindmap(mismatch)).toThrow();
+  expect(() => addNode(mismatch.rootId, 0, 'bad', '').apply(doc())).toThrow();
+});
+
 it('reorders and moves a subtree, preserving children and side rules', () => {
   let d = doc(); const root = d.rootId;
   d = addNode(root, 0, id(2), 'a', 'left').apply(d);

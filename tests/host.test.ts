@@ -3,7 +3,7 @@ import { createArtifact, MemoryStorage, type Artifact } from '@editor-platform/a
 import { ExtensionRegistry } from '@editor-platform/extension-runtime';
 import { installVerifiedExtension, loadVerifiedExtension, verifyExtensionPackage, type LoadedExtension } from '@editor-platform/extension-runtime/package';
 import { createLocalHost } from '../dev/host';
-import { renameNode } from '../src/mindmap-commands';
+import { renameNode, addNode, reorderNode, moveNode, colorNode, markNode, noteNode } from '../src/mindmap-commands';
 import type { MindmapDocument } from '../src/mindmap-model';
 import sample from '../fixtures/mindmap/valid.json';
 import { buildExtension } from '../scripts/build-extension.mjs';
@@ -49,5 +49,60 @@ it('saves, reopens, and imports valid native and backup content', async () => {
   await expect(host.parseImport('{"cards":[]}')).rejects.toThrow();
   await host.save(); const reopened = await host.reopenSaved();
   expect(reopened.editor.content.nodes[id].text).toBe('保存');
+  reopened.close(); registration.uninstall();
+});
+
+it('TS-024 rejects a prepared proposal after permission is revoked without changing content or history', () => {
+  const {host, registration, id} = setup();
+  const proposal = host.prepareRename(id, '提案');
+  const before = structuredClone(host.editor.content), snapshot = host.editor.snapshot;
+  host.setReadOnly(true);
+  expect(() => proposal.commit()).toThrow();
+  expect(host.editor.content).toEqual(before);
+  expect(host.editor.snapshot.canUndo).toBe(snapshot.canUndo);
+  expect(host.editor.snapshot.canRedo).toBe(snapshot.canRedo);
+  host.close(true); registration.uninstall();
+});
+
+it('TS-025 retains a failed save and persists it on retry', async () => {
+  const {host, registration, id} = setup();
+  host.handle.api.execute(renameNode(id, '保存する変更'));
+  host.setSaveFailure(true);
+  await expect(host.save()).rejects.toThrow();
+  expect(host.editor.snapshot.dirty).toBe(true);
+  expect(host.editor.content.nodes[id].text).toBe('保存する変更');
+  host.setSaveFailure(false); await host.save();
+  const reopened = await host.reopenSaved();
+  expect(reopened.editor.content.nodes[id].text).toBe('保存する変更');
+  reopened.close(); registration.uninstall();
+});
+
+it('TS-026 reverses and reapplies reorder and subtree moves and saves them', async () => {
+  const {host, registration, id} = setup();
+  const a = 'n-00000000000000000000000000000002', b = 'n-00000000000000000000000000000003';
+  host.handle.api.execute(addNode(id, 0, a, 'a'));
+  host.handle.api.execute(addNode(id, 1, b, 'b'));
+  const initial = structuredClone(host.editor.content);
+  host.handle.api.execute(reorderNode(b, 0)); const reordered = structuredClone(host.editor.content);
+  host.handle.api.execute(moveNode(a, b, 0)); const moved = structuredClone(host.editor.content);
+  host.handle.api.undo(); expect(host.editor.content).toEqual(reordered);
+  host.handle.api.undo(); expect(host.editor.content).toEqual(initial);
+  host.handle.api.redo(); expect(host.editor.content).toEqual(reordered);
+  host.handle.api.redo(); expect(host.editor.content).toEqual(moved);
+  await host.save(); const reopened = await host.reopenSaved();
+  expect(reopened.editor.content).toEqual(moved);
+  reopened.close(); registration.uninstall();
+});
+
+it('TS-028 reverses and reapplies color marks and note and saves them', async () => {
+  const {host, registration, id} = setup();
+  const states = [structuredClone(host.editor.content)];
+  for (const cmd of [colorNode(id, '#abc'), markNode(id, ['idea']), noteNode(id, 'メモ')]) {
+    host.handle.api.execute(cmd); states.push(structuredClone(host.editor.content));
+  }
+  for (let i = 2; i >= 0; i--) { host.handle.api.undo(); expect(host.editor.content).toEqual(states[i]); }
+  for (let i = 1; i <= 3; i++) { host.handle.api.redo(); expect(host.editor.content).toEqual(states[i]); }
+  await host.save(); const reopened = await host.reopenSaved();
+  expect(reopened.editor.content).toEqual(states[3]);
   reopened.close(); registration.uninstall();
 });
