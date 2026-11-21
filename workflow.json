@@ -168,7 +168,10 @@
    "acceptedOrg": "org_43ebefe4ad314d25"
   },
   "learning": {
-   "state": "未着手"
+   "state": "受け入れ済み",
+   "acceptedAt": "2026-11-21T15:13:40.067Z",
+   "acceptedBy": "早川 葵（P-f76d97e41ec6a817）",
+   "acceptedOrg": "org_43ebefe4ad314d25"
   }
  },
  "gates": [
