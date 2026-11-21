@@ -142,3 +142,14 @@ npm run test:e2e
 root契約: `1.0.0-draft.1`、operations add-on: `operations@0-draft`。
 
 この記録は初期版の確認であり、後の変更に対する継続的な合格宣言ではありません。
+
+## マインドマップの検証（2026-11-21）
+
+基準 commit `0871e999d6861086deddb32c79b36fffe4018e7e` に、この作業の未コミット変更を加えた状態で実行した。
+
+- `npm run check`：成功（型検査と同梱SDKの照合）。
+- `npx vitest run tests/mindmap.test.ts tests/operations.test.ts tests/surface.test.ts`：3ファイル、14件成功。
+- `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/google-chrome npm run test:e2e`：14件成功（デスクトップ・スマホ幅各7件）。その後、左端の試験に保存・再読込を加え、`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/google-chrome npx playwright test -g 'left branch'` で2件成功。
+- 初回のブラウザ試験はブラウザ未配置で14件とも起動できず、ダウンロードも接続先へのアクセス拒否で失敗した。上記の再実行は環境にあるChromeを使用した。
+
+対応表の未実施項目を含むため、全仕様を検証済みとはしない。実PaoBubへの接続はこの実行に含まない。

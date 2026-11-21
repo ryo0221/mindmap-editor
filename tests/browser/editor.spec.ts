@@ -72,3 +72,40 @@ test('exports and reimports native content and rejects invalid data', async ({ p
   await page.locator('#file').setInputFiles({ name: 'broken.json', mimeType: 'application/json', buffer: Buffer.from('{"schemaVersion":999}') });
   await expect(page.locator('#message')).toHaveClass(/error/);
 });
+
+test('composition Enter does not add a branch and undo redo preserves its ID', async ({ page }) => {
+  await page.getByRole('button', { name: '子を足す' }).click();
+  const node = page.locator('.mindmap-node').last();
+  const id = await node.getAttribute('data-node-id');
+  await node.dispatchEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true });
+  await expect(page.locator('.mindmap-node')).toHaveCount(2);
+  await page.getByRole('button', { name: '↶ Undo' }).click();
+  await expect(page.locator('.mindmap-node')).toHaveCount(1);
+  await page.getByRole('button', { name: '↷ Redo' }).click();
+  await expect(page.locator('.mindmap-node').last()).toHaveAttribute('data-node-id', id!);
+});
+
+test('read-only prevents changes and stale proposals cannot be adopted', async ({ page }) => {
+  await page.getByRole('button', { name: '変更をプレビュー' }).click();
+  await page.getByRole('button', { name: '子を足す' }).click();
+  await expect(page.getByRole('button', { name: '採用', exact: true })).toBeDisabled();
+  await page.locator('#readonly').check();
+  await expect(page.getByRole('button', { name: '子を足す' })).toBeDisabled();
+  await expect(page.locator('#prepare')).toBeDisabled();
+  await expect(page.locator('.mindmap-node')).toHaveCount(2);
+});
+
+test('left branch is reachable at the left edge and panel stacks on narrow screens', async ({ page }) => {
+  await page.locator('#file').setInputFiles('fixtures/mindmap/valid-rich.json');
+  await expect(page.getByRole('button', { name: '枝', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '保存', exact: true }).click();
+  await page.getByRole('button', { name: '再読み込み' }).click();
+  const map = page.locator('.mindmap-map');
+  await expect(page.getByRole('button', { name: '枝', exact: true })).toBeVisible();
+  const bounds = (await map.boundingBox())!, branch = (await page.getByRole('button', { name: '枝', exact: true }).boundingBox())!;
+  expect(branch.x).toBeGreaterThanOrEqual(bounds.x);
+  if (page.viewportSize()!.width <= 700) {
+    const panel = (await page.locator('.mindmap-panel').boundingBox())!;
+    expect(panel.y).toBeGreaterThanOrEqual(bounds.y + bounds.height);
+  }
+});
