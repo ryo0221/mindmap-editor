@@ -257,7 +257,7 @@
         "IV-05",
         "CAP-01"
       ],
-      "方法": "tests/mindmap-trace.test.ts: TS-023 rejects malformed and mismatched node IDs; tests/browser/editor.spec.ts: TS-023 does not reuse an issued ID after undo when random bytes repeat。形式・一致は通ったが、乱数衝突時のUndo後の再利用防止は落ちた。削除後は未実施。",
+      "方法": "tests/mindmap-trace.test.ts: TS-023 rejects malformed and mismatched node IDs; tests/browser/editor.spec.ts: TS-023 does not reuse an issued ID after undo when random bytes repeat。形式・一致は通ったが、同じ乱数が続くとUndo後に発行済みIDが再利用され、試験は落ちた。削除後は未実施。",
       "結果": "落ちた"
     },
     {
@@ -303,7 +303,7 @@
         "CAP-02",
         "CAP-06"
       ],
-      "方法": "tests/browser/editor.spec.ts: TS-027 allows temporary folding in read-only without changing history or saved content。折りたたみボタンが無効で、後続の内容・履歴・保存の検査は未到達。",
+      "方法": "tests/browser/editor.spec.ts: TS-027 allows temporary folding in read-only without changing history or saved content。開発Hostが読み取り専用時に画面全体を無効にするため折りたたみボタンを押せず、後続の内容・履歴・保存の検査は未到達。",
       "結果": "落ちた"
     },
     {
@@ -329,7 +329,7 @@
         "CAP-02",
         "CAP-04"
       ],
-      "方法": "tests/browser/editor.spec.ts: TS-029 saves layout changes and restores them through undo and redo。画面での変更が本体に反映されず、後続の履歴・保存の検査は未到達。",
+      "方法": "tests/browser/editor.spec.ts: TS-029 saves layout changes and restores them through undo and redo。画面の配置選択は表示のみを変更し本体に反映されないため、後続の履歴・保存の検査は未到達。",
       "結果": "落ちた"
     }
   ],
