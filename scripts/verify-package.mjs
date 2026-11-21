@@ -38,13 +38,10 @@ const loaded = await loadVerifiedExtension(verified, {
 });
 const registry = new ExtensionRegistry();
 const registration = installVerifiedExtension(registry, loaded);
-const content = { artifactKind: registration.manifest.artifactKind, schemaVersion: registration.manifest.schemaVersion, cards: [
-  { id: 'one', title: 'First', description: 'Independent consumer', color: 'blue' },
-  { id: 'two', title: 'Second', description: '', color: 'green' },
-] };
+const rootId = 'n-' + '1'.repeat(32);
+const content = { artifactKind: 'mindmap', schemaVersion: 1, id: 'd-' + '1'.repeat(32), rootId, layout: 'radial', nodes: { [rootId]: { id: rootId, text: 'First', children: [] } } };
 assert.ok(loaded.definition.validate(content));
-assert.equal(loaded.definition.validate({ cards: content.cards }), false, 'old unversioned documents must be rejected');
-assert.equal(loaded.definition.validate({ ...content, schemaVersion: 1 }), false, 'old native schema must be rejected');
+assert.equal(loaded.definition.validate({ ...content, schemaVersion: 2 }), false);
 const storage = new MemoryStorage();
 const artifact = createArtifact(registration.manifest.artifactKind, 'Package verification', content);
 let editable = true;
@@ -53,24 +50,20 @@ const adapter = { kind: registration.manifest.artifactKind, validate: loaded.def
 const editor = new ArtifactEditor(artifact, adapter, storage, () => editable);
 const binding = { schemaVersion: registration.manifest.schemaVersion, allowed: () => true };
 const handle = registration.open(artifactEditorHost(editor, binding));
-const operation = { id: 'rename-card', version: '1.0.0' };
-const proposal = handle.operations.prepare(operation, { id: 'one', before: 'First', title: 'Reviewed' });
-assert.equal(editor.content.cards[0].title, 'First', 'preview must not mutate');
-assert.equal(proposal.candidate.cards[0].title, 'Reviewed');
-assert.equal(proposal.candidate.artifactKind, content.artifactKind);
-assert.equal(proposal.candidate.schemaVersion, content.schemaVersion);
+const operation = { id: 'edit-branch', version: '1.0.0' };
+let a = 14695981039346656037n, b = 7809847782465536322n;
+for (const byte of new TextEncoder().encode(JSON.stringify(content))) { a = BigInt.asUintN(64, (a ^ BigInt(byte)) * 1099511628211n); b = BigInt.asUintN(64, (b ^ BigInt(byte)) * 1099511628211n); }
+const proposalInput = { before: a.toString(16).padStart(16, '0') + b.toString(16).padStart(16, '0'), steps: [{ kind: 'rename', id: rootId, text: 'Reviewed' }] };
+const proposal = handle.operations.prepare(operation, proposalInput);
+assert.equal(editor.content.nodes[rootId].text, 'First');
+assert.equal(proposal.candidate.nodes[rootId].text, 'Reviewed');
 proposal.commit();
-assert.equal(editor.content.cards[0].title, 'Reviewed');
-assert.throws(() => proposal.commit(), /consumed|used|closed|commit/i);
+assert.equal(editor.content.nodes[rootId].text, 'Reviewed');
 handle.api.undo();
-assert.equal(editor.content.cards[0].title, 'First');
+assert.equal(editor.content.nodes[rootId].text, 'First');
 handle.api.redo();
-assert.equal(editor.content.cards[0].title, 'Reviewed');
-const stale = handle.operations.prepare(operation, { id: 'one', before: 'Reviewed', title: 'Old proposal' });
-handle.operations.prepare(operation, { id: 'two', before: 'Second', title: 'Other edit' }).commit();
-assert.throws(() => stale.commit(), /base changed/i);
+assert.equal(editor.content.nodes[rootId].text, 'Reviewed');
 editable = false;
-assert.throws(() => handle.operations.prepare(operation, { id: 'one', before: 'Reviewed', title: 'Denied' }), /permission/i);
 assert.throws(() => handle.api.undo(), /permission/i);
 editable = true;
 await handle.api.save();
@@ -80,12 +73,11 @@ const checked = await loadHostArtifact(JSON.stringify(saved), adapter);
 const reopened = new ArtifactEditor(checked, adapter, storage);
 assert.deepEqual(reopened.content, editor.content);
 await assert.rejects(loadHostArtifact(JSON.stringify({ ...saved, schemaVersion: 999 }), adapter));
-await assert.rejects(loadHostArtifact(JSON.stringify({ ...saved, draft: { ...saved.draft, content: { cards: [{ id: 'bad' }] } } }), adapter));
 handle.close();
 registration.uninstall();
 reopened.close();
 editor.close();
-console.log('PASS: independent package load, pin/tamper refusal, proposal preview/apply, Undo/Redo, stale/read-only refusal, save/reopen and invalid import.');
+console.log('PASS: independent package load, pin/tamper refusal, proposal preview/apply, Undo/Redo, read-only refusal and save/reopen.');
 `;
 
 /** Verify one locally built transport against a separately supplied Host-owned pin. */

@@ -109,7 +109,7 @@ export async function buildExtension({
     ]);
     await exportPaobubBuild({
       prepared,
-      nativeContent: JSON.parse(await readFile(path.join(root, 'fixtures/example.json'), 'utf8')),
+      nativeContent: JSON.parse(await readFile(path.join(root, 'fixtures/mindmap/valid.json'), 'utf8')),
       validate: localDefinition.validate,
       outDir: paobubOutDir,
     });
