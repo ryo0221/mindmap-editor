@@ -1,214 +1,82 @@
 import type { ScopedHost } from '@editor-platform/extension-contract';
-import { addCard, moveCard, removeCard, updateCard } from './commands';
-import { CARD_COLORS, type Card, type CardDocument } from './model';
+import type { EditorCommand } from '@editor-platform/editor-core';
+import { addNode, renameNode, deleteNode, reorderNode, moveNode, colorNode, markNode, noteNode } from './mindmap-commands';
+import type { Layout, Mark, MindmapDocument } from './mindmap-model';
 import styles from './styles.css?inline';
 
-function element<K extends keyof HTMLElementTagNameMap>(tag: K, text?: string, className?: string) {
-  const node = document.createElement(tag);
-  if (text !== undefined) node.textContent = text;
-  if (className) node.className = className;
-  return node;
+function el<K extends keyof HTMLElementTagNameMap>(tag: K, text?: string): HTMLElementTagNameMap[K] {
+  const e = document.createElement(tag); if (text !== undefined) e.textContent = text; return e;
 }
-
-/** A small DOM Surface. Native content and commands also work without a browser. */
-export function mountEditor(container: HTMLElement, host: ScopedHost<CardDocument>): () => void {
-  const root = element('section', undefined, 'ep-card-editor');
-  root.setAttribute('aria-label', 'カードEditor');
-  const style = element('style', styles);
-  const status = element('p', '', 'ep-card-status');
-  status.setAttribute('role', 'status');
-  const toolbar = element('div', undefined, 'ep-card-toolbar');
-  const count = element('span', '', 'ep-card-count');
-  const add = element('button', '＋ カードを追加', 'ep-card-primary');
-  add.type = 'button';
-  const list = element('div', undefined, 'ep-card-list');
-  list.setAttribute('role', 'list');
-  toolbar.append(count, add);
-  root.append(style, toolbar, list, status);
-  container.append(root);
-  const dialogCleanups = new Set<() => void>();
-  let renderedContent = '';
-
-  function report(error: unknown) {
-    status.textContent = error instanceof Error ? error.message : '操作を完了できませんでした。';
+function randomId(): string { return 'n-' + Array.from(crypto.getRandomValues(new Uint8Array(16)), n => n.toString(16).padStart(2, '0')).join(''); }
+export function mountEditor(container: HTMLElement, host: ScopedHost<MindmapDocument>): () => void {
+  const root = el('section'); root.className = 'mindmap-editor'; root.setAttribute('aria-label', 'マインドマップ');
+  const style = el('style', styles), toolbar = el('div'), status = el('p'), main = el('div'), map = el('div'), panel = el('form');
+  toolbar.className = 'mindmap-toolbar'; main.className = 'mindmap-main'; map.className = 'mindmap-map'; panel.className = 'mindmap-panel'; status.setAttribute('role','status');
+  root.append(style, toolbar, status, main); main.append(map, panel); container.append(root);
+  let selected = host.read().rootId, readonly = false, layout: Layout = host.read().layout, last = '', snapshot = '', composing = false;
+  const folded = new Map<string, boolean>();
+  const button = (label: string, action: () => void) => { const b = el('button', label); b.type = 'button'; b.onclick = action; return b; };
+  function perform(cmd: EditorCommand<MindmapDocument>): boolean {
+    try { cmd.apply(host.read()); } catch (e) { status.textContent = e instanceof Error ? e.message : '操作できません。'; return false; }
+    try { host.execute(cmd); status.textContent = ''; draw(); return true; }
+    catch { readonly = true; status.textContent = '読み取り専用です'; draw(); return false; }
   }
-  function execute(action: () => void) {
-    try {
-      action();
-      status.textContent = '';
-      render();
-    } catch (error) {
-      report(error);
-    }
-  }
-  function edit(card?: Card) {
-    const dialog = element('dialog', undefined, 'ep-card-dialog');
-    const form = element('form');
-    const heading = element('h3', card ? 'カードを編集' : '新しいカード');
-    const titleLabel = element('label', 'タイトル');
-    const title = element('input');
-    title.name = 'title';
-    title.required = true;
-    title.value = card?.title ?? '';
-    title.autocomplete = 'off';
-    titleLabel.append(title);
-    const descriptionLabel = element('label', '説明');
-    const description = element('textarea');
-    description.name = 'description';
-    description.rows = 4;
-    description.value = card?.description ?? '';
-    descriptionLabel.append(description);
-    const colorLabel = element('label', '色');
-    const color = element('select');
-    color.name = 'color';
-    color.setAttribute('aria-label', '色');
-    const labels = {
-      blue: 'ブルー',
-      green: 'グリーン',
-      amber: 'アンバー',
-      rose: 'ローズ',
-      purple: 'パープル',
-      slate: 'スレート',
-    };
-    for (const value of CARD_COLORS) {
-      const option = element('option', labels[value]);
-      option.value = value;
-      color.append(option);
-    }
-    color.value = card?.color ?? 'blue';
-    colorLabel.append(color);
-    const errorMessage = element('p', '', 'ep-card-error');
-    errorMessage.setAttribute('role', 'alert');
-    const actions = element('div', undefined, 'ep-card-dialog-actions');
-    const cancel = element('button', 'キャンセル');
-    cancel.type = 'button';
-    const submit = element('button', card ? '変更を適用' : 'カードを追加', 'ep-card-primary');
-    submit.type = 'submit';
-    cancel.onclick = () => dialog.close();
-    actions.append(cancel, submit);
-    form.append(heading, titleLabel, descriptionLabel, colorLabel, errorMessage, actions);
-    dialog.append(form);
-    root.append(dialog);
-    const hasPendingInput = () =>
-      title.value !== (card?.title ?? '') ||
-      description.value !== (card?.description ?? '') ||
-      color.value !== (card?.color ?? 'blue');
-    const guardPendingInput = (event: BeforeUnloadEvent) => {
-      if (dialog.open && hasPendingInput()) {
-        event.preventDefault();
-        event.returnValue = '';
-      }
-    };
-    const cleanupDialog = () => {
-      window.removeEventListener('beforeunload', guardPendingInput);
-      dialogCleanups.delete(cleanupDialog);
-    };
-    window.addEventListener('beforeunload', guardPendingInput);
-    dialogCleanups.add(cleanupDialog);
-    dialog.addEventListener(
-      'close',
-      () => {
-        cleanupDialog();
-        dialog.remove();
-      },
-      { once: true },
-    );
-    form.onsubmit = (event) => {
-      event.preventDefault();
-      try {
-        if (card) {
-          const current = host.read().cards.find((item) => item.id === card.id);
-          if (
-            !current || current.title !== card.title ||
-            current.description !== card.description || current.color !== card.color
-          )
-            throw new Error('このカードは編集中に変更されました。入力を控えてキャンセルし、現在の内容を開き直してください。');
-        }
-        const value = {
-          title: title.value,
-          description: description.value,
-          color: color.value as Card['color'],
-        };
-        host.execute(
-          card ? updateCard(card.id, value) : addCard({ id: crypto.randomUUID(), ...value }),
-        );
-        dialog.close();
-        status.textContent = '';
-        render();
-      } catch (error) {
-        errorMessage.textContent =
-          error instanceof Error ? error.message : '入力を確認してください。';
-      }
-    };
-    // A modal keeps the example's explicit apply/cancel inputs separate from Host actions.
-    // Editors needing inline pending inputs must adopt the appropriate input contract.
-    dialog.showModal();
-    title.focus();
-  }
-  add.onclick = () => edit();
-
-  function render(content = host.read()) {
-    renderedContent = JSON.stringify(content);
-    count.textContent = `${content.cards.length} CARDS`;
-    add.disabled = content.cards.length >= 100;
-    list.replaceChildren();
-    if (!content.cards.length)
-      list.append(
-        element('p', '最初のカードを追加して、自分のEditorを作り始めましょう。', 'ep-card-empty'),
-      );
-    content.cards.forEach((card, index) => {
-      const item = element('article', undefined, 'ep-card');
-      item.setAttribute('role', 'listitem');
-      item.dataset.color = card.color;
-      item.dataset.cardId = card.id;
-      const top = element('div', undefined, 'ep-card-top');
-      const number = element('span', String(index + 1).padStart(2, '0'), 'ep-card-number');
-      top.append(number);
-      const title = element('h3', card.title);
-      const description = element(
-        'p',
-        card.description || '説明を追加できます。',
-        'ep-card-description',
-      );
-      const actions = element('div', undefined, 'ep-card-actions');
-      const editButton = element('button', '編集');
-      editButton.type = 'button';
-      editButton.setAttribute('aria-label', `「${card.title}」を編集`);
-      editButton.onclick = () => edit(card);
-      const up = element('button', '↑');
-      up.type = 'button';
-      up.disabled = index === 0;
-      up.setAttribute('aria-label', `「${card.title}」を前へ移動`);
-      up.onclick = () => execute(() => host.execute(moveCard(card.id, -1)));
-      const down = element('button', '↓');
-      down.type = 'button';
-      down.disabled = index === content.cards.length - 1;
-      down.setAttribute('aria-label', `「${card.title}」を後ろへ移動`);
-      down.onclick = () => execute(() => host.execute(moveCard(card.id, 1)));
-      const remove = element('button', '削除', 'ep-card-remove');
-      remove.type = 'button';
-      remove.setAttribute('aria-label', `「${card.title}」を削除`);
-      remove.onclick = () => execute(() => host.execute(removeCard(card.id)));
-      actions.append(editButton, up, down, remove);
-      item.append(top, title, description, actions);
-      list.append(item);
-    });
-  }
-  render();
-  // draft.1 exposes read(), not subscribe(). PaoBub keeps this Surface mounted
-  // across Host Undo/Redo and proposals. Refresh only the list; a pending modal
-  // and its inputs stay attached until the user applies or cancels them.
-  const refresh = window.setInterval(() => {
-    try {
-      const content = host.read();
-      if (JSON.stringify(content) !== renderedContent) render(content);
-    } catch (error) {
-      report(error);
-    }
-  }, 200);
-  return () => {
-    window.clearInterval(refresh);
-    for (const cleanup of dialogCleanups) cleanup();
-    root.remove();
+  function add(child: boolean) { if (readonly) return; if (dirty()) { status.textContent = '未確定の入力を適用または取り消してください。'; return; } const d = host.read(), n = d.nodes[selected]; if (!n) return; const p = child ? n : Object.values(d.nodes).find(x => x.children.includes(selected)); if (!p) { status.textContent = '根に兄弟は追加できません。'; return; } const id = randomId(); if (perform(addNode(p.id, child ? p.children.length : p.children.indexOf(selected) + 1, id, ''))) { folded.set(p.id, false); selected = id; draw(true); name.focus(); } }
+  function remove() { if (!readonly && selected !== host.read().rootId && confirm('子孫を含む枝を削除しますか？')) { const d = host.read(), p = Object.values(d.nodes).find(n => n.children.includes(selected)); if (perform(deleteNode(selected)) && p) { selected = p.id; draw(true); } } }
+  function history(redo: boolean) { if (readonly) return; try { redo ? host.redo() : host.undo(); draw(true); } catch (e) { status.textContent = e instanceof Error ? e.message : '操作できません。'; if (/permission|read.only|権限|読み取り専用/i.test(status.textContent)) { readonly = true; status.textContent = '読み取り専用です'; draw(); } } }
+  const sibling = button('枝を足す', () => add(false)), child = button('子を足す', () => add(true)), del = button('消す', remove), undo = button('Undo', () => history(false)), redo = button('Redo', () => history(true));
+  const layoutSelect = el('select'); layoutSelect.setAttribute('aria-label','配置');
+  for (const [value, label] of [['radial','左右'],['right','右向き'],['tree','下向き']]) { const o = el('option',label); o.value = value; layoutSelect.append(o); }
+  layoutSelect.onchange = () => { layout = layoutSelect.value as Layout; draw(); };
+  toolbar.append(sibling, child, del, undo, redo, layoutSelect);
+  const heading = el('h2','枝の情報'), name = el('input'), color = el('input'), marks = el('input'), note = el('textarea');
+  name.setAttribute('aria-label','名前'); color.setAttribute('aria-label','色'); marks.setAttribute('aria-label','印'); note.setAttribute('aria-label','メモ');
+  const label = (title: string, input: HTMLElement) => { const l = el('label',title); l.append(input); return l; };
+  const apply = el('button','適用'); apply.type = 'submit'; const cancel = button('取消', () => draw(true));
+  const branchActions = el('div'); branchActions.className = 'mindmap-branch-actions';
+  panel.append(heading,label('名前',name),label('色（例 #336699）',color),label('印（カンマ区切り）',marks),label('メモ',note),apply,cancel,branchActions);
+  function dirty() { if (!snapshot) return false; const n = JSON.parse(snapshot); return name.value !== n.text || color.value !== (n.color ?? '') || marks.value !== (n.marks ?? []).join(', ') || note.value !== (n.note ?? ''); }
+  const guard = (event: BeforeUnloadEvent) => { if (dirty()) { event.preventDefault(); event.returnValue = ''; } };
+  window.addEventListener('beforeunload', guard);
+  panel.addEventListener('compositionstart', () => { composing = true; }); panel.addEventListener('compositionend', () => { composing = false; });
+  panel.onsubmit = e => { e.preventDefault(); if (readonly || composing) return; const d = host.read(), n = d.nodes[selected]; if (!n || JSON.stringify(n) !== snapshot) { status.textContent = '編集中にこの枝が変更または削除されました。入力を保持しています。'; return; }
+    const commands: EditorCommand<MindmapDocument>[] = [];
+    if (name.value !== n.text) commands.push(renameNode(selected,name.value));
+    if (color.value !== (n.color ?? '')) commands.push(colorNode(selected,color.value || undefined));
+    const newMarks = marks.value ? marks.value.split(',').map(x => x.trim()) as Mark[] : undefined;
+    if (JSON.stringify(newMarks ?? []) !== JSON.stringify(n.marks ?? [])) commands.push(markNode(selected,newMarks));
+    if (note.value !== (n.note ?? '')) commands.push(noteNode(selected,note.value || undefined));
+    if (!commands.length) { status.textContent = '変更がありません。'; return; }
+    const before = snapshot, id = selected;
+    if (perform({ type: 'mindmap.fields', label: '枝の情報を編集', readonlyInput: true, apply(current) { if (!current.nodes[id] || JSON.stringify(current.nodes[id]) !== before) throw new Error('編集中にこの枝が変更されました。'); return commands.reduce((doc, cmd) => cmd.apply(doc),current); } })) draw(true);
   };
+  function draw(reset = false) {
+    const d = host.read(); last = JSON.stringify(d); if (!d.nodes[selected] && (reset || !snapshot)) selected = d.rootId;
+    const n = d.nodes[selected]; sibling.disabled = readonly || selected === d.rootId; child.disabled = readonly || !n; del.disabled = readonly || selected === d.rootId || !n; undo.disabled = redo.disabled = readonly;
+    for (const control of [name,color,marks,note,apply,cancel]) control.disabled = readonly || !n;
+    layoutSelect.value = layout;
+    if (n && (reset || !snapshot)) { snapshot = JSON.stringify(n); name.value = n.text; color.value = n.color ?? ''; marks.value = (n.marks ?? []).join(', '); note.value = n.note ?? ''; }
+    map.replaceChildren(); const canvas = el('div'); canvas.className = 'mindmap-canvas'; map.append(canvas);
+    const visible: { id: string; depth: number; side: number; order: number; parent?: string }[] = [];
+    function visit(id: string, depth: number, side: number, parent?: string) { const x = d.nodes[id]; const order = visible.length; visible.push({id,depth,side,order,parent}); if (!(folded.get(id) ?? x.collapsed ?? false)) x.children.forEach((c,i) => visit(c,depth+1, depth === 0 && layout === 'radial' ? (d.nodes[c].side === 'left' || (!d.nodes[c].side && i % 2) ? -1 : 1) : side,id)); }
+    visit(d.rootId,0,1); const positions = new Map<string,{x:number;y:number}>();
+    visible.forEach((v,i) => { const x = layout === 'tree' ? i * 200 : v.side * v.depth * 190; const y = layout === 'tree' ? v.depth * 90 : i * 65; positions.set(v.id,{x,y}); });
+    const points = [...positions.values()]; const minX = Math.min(...points.map(p => p.x)), maxX = Math.max(...points.map(p => p.x)), maxY = Math.max(...points.map(p => p.y));
+    for (const pos of points) { pos.x += 20 - minX; pos.y += 20; }
+    const width = Math.max(map.clientWidth - 22, maxX - minX + 220), height = Math.max(300, maxY + 100); canvas.style.width = `${width}px`; canvas.style.height = `${height}px`;
+    const svg = document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.setAttribute('width',String(width)); svg.setAttribute('height',String(height)); svg.classList.add('mindmap-lines'); canvas.append(svg);
+    for (const [i, v] of visible.entries()) { const pos = positions.get(v.id)!; if (v.parent) { const p = positions.get(v.parent)!; const line = document.createElementNS(svg.namespaceURI,'line'); line.setAttribute('x1',String(p.x+60)); line.setAttribute('y1',String(p.y+18)); line.setAttribute('x2',String(pos.x+60)); line.setAttribute('y2',String(pos.y+18)); line.setAttribute('stroke','#a6b2c2'); svg.append(line); }
+      const item = button(d.nodes[v.id].text || '（無題）', () => { if (selected !== v.id) { if (dirty()) { status.textContent = '未確定の入力を適用または取り消してください。'; return; } selected = v.id; snapshot = ''; draw(true); } }); item.className = 'mindmap-node'; item.style.left = `${pos.x}px`; item.style.top = `${pos.y}px`; if (d.nodes[v.id].color) item.style.borderColor = d.nodes[v.id].color!; item.setAttribute('aria-pressed',String(v.id === selected)); item.dataset.nodeId = v.id;
+      item.onkeydown = e => { if (e.isComposing || composing || e.keyCode === 229) return; if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); history(e.shiftKey); return; } if (e.key === 'Tab' && !e.shiftKey) { e.preventDefault(); add(true); } else if (e.key === 'Enter') { e.preventDefault(); add(false); } else if (e.key === 'F2') { e.preventDefault(); name.focus(); } else if (e.key === 'Delete') { e.preventDefault(); remove(); } else if (e.key === ' ') { e.preventDefault(); toggle(v.id); } else if (e.key.startsWith('Arrow')) { e.preventDefault(); const next = visible[Math.max(0,Math.min(visible.length-1,i + (e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 1)))]; selected = next.id; snapshot = ''; draw(true); map.querySelector<HTMLButtonElement>(`[data-node-id="${next.id}"]`)?.focus(); } }; canvas.append(item);
+    }
+    if (n?.children.length) { const fold = button((folded.get(selected) ?? n.collapsed) ? '開く' : '畳む', () => toggle(selected)); map.append(fold); }
+    branchActions.replaceChildren();
+    if (n && selected !== d.rootId) { const p = Object.values(d.nodes).find(x => x.children.includes(selected))!; const i = p.children.indexOf(selected); const up = button('前へ', () => perform(reorderNode(selected,i-1))); const down = button('後ろへ', () => perform(reorderNode(selected,i+1))); up.disabled = readonly || i === 0; down.disabled = readonly || i === p.children.length-1; branchActions.append(el('h3','枝の移動'), el('p','兄弟の中で並べ替え'),up,down);
+      const target = el('select'); target.setAttribute('aria-label','移動先の親'); for (const other of Object.values(d.nodes)) { const o = el('option',other.text || '（無題）'); o.value = other.id; target.append(o); } const index = el('input'); index.type = 'number'; index.min = '0'; index.value = '0'; index.setAttribute('aria-label','挿入位置'); const side = el('select'); side.setAttribute('aria-label','左右'); for (const v of ['right','left']) { const o = el('option',v); o.value=v; side.append(o); } const move = button('移す', () => perform(moveNode(selected,target.value,Number(index.value),target.value === d.rootId ? side.value as 'left'|'right' : undefined))); target.disabled = index.disabled = side.disabled = move.disabled = readonly; branchActions.append(label('移動先の親',target),label('挿入位置',index),label('中心からの方向',side),move);
+    }
+    if (reset && positions.has(selected)) { const pos = positions.get(selected)!; map.scrollLeft = Math.max(0, pos.x + 90 - map.clientWidth / 2); map.scrollTop = Math.max(0, pos.y + 20 - map.clientHeight / 2); }
+  }
+  function toggle(id: string) { const n = host.read().nodes[id]; if (n?.children.length) { folded.set(id, !(folded.get(id) ?? n.collapsed ?? false)); draw(); } }
+  draw(true); const timer = window.setInterval(() => { try { if (JSON.stringify(host.read()) !== last) draw(); } catch (e) { status.textContent = e instanceof Error ? e.message : '読み込めません。'; } },200);
+  return () => { window.clearInterval(timer); window.removeEventListener('beforeunload', guard); root.remove(); };
 }

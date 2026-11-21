@@ -9,11 +9,11 @@ import {
   type PackageManifest,
 } from '@editor-platform/extension-runtime/package';
 import {
-  CARD_ARTIFACT_KIND,
-  CARD_SCHEMA_VERSION,
-  isCardDocument,
-  type CardDocument,
-} from '../src/model';
+  MINDMAP_ARTIFACT_KIND,
+  MINDMAP_SCHEMA_VERSION,
+  isMindmapDocument,
+  type MindmapDocument,
+} from '../src/mindmap-model';
 import { buildExtension } from '../scripts/build-extension.mjs';
 import { exportPaobubBuild } from '../scripts/export-paobub.mjs';
 
@@ -65,7 +65,7 @@ it('exports the same verified package, with native content and consistent PaoBub
   const verified = await verifyExtensionPackage(input, (id, version) =>
     id === pin.id && version === pin.version ? pin.hash : undefined,
   );
-  const loaded = await loadVerifiedExtension<CardDocument>(verified, {
+  const loaded = await loadVerifiedExtension<MindmapDocument>(verified, {
     importModule: (bytes) =>
       import(/* @vite-ignore */ `data:text/javascript;base64,${Buffer.from(bytes).toString('base64')}`),
   });
@@ -81,9 +81,9 @@ it('exports the same verified package, with native content and consistent PaoBub
   expect(bindings[deliverable]).toEqual({ editor: `ext:${pin.id}`, package: pin });
   expect(definition.phases[0].deliverables).toContain(deliverable);
   expect(workflow.deliverables[deliverable][0].as).toBe('plain');
-  expect(native).toEqual(await readJson(path.join(process.cwd(), 'fixtures/example.json')));
-  expect(native.artifactKind).toBe(CARD_ARTIFACT_KIND);
-  expect(native.schemaVersion).toBe(CARD_SCHEMA_VERSION);
+  expect(native).toEqual(await readJson(path.join(process.cwd(), 'fixtures/mindmap/valid.json')));
+  expect(native.artifactKind).toBe(MINDMAP_ARTIFACT_KIND);
+  expect(native.schemaVersion).toBe(MINDMAP_SCHEMA_VERSION);
   expect(loaded.definition.validate(native)).toBe(true);
   expect(loaded.manifest.artifactKind).toBe(native.artifactKind);
   expect(loaded.manifest.schemaVersion).toBe(native.schemaVersion);
@@ -98,13 +98,13 @@ it('exports the same verified package, with native content and consistent PaoBub
 });
 
 it('refuses native data that the built Editor cannot reopen before writing Project files', async () => {
-  const native = await readJson(path.join(process.cwd(), 'fixtures/example.json'));
+  const native = await readJson(path.join(process.cwd(), 'fixtures/mindmap/valid.json'));
   const outDir = path.join(temporary, 'invalid-export');
   const prepared = await describeExtensionPackage(packageInput(built));
   await expect(exportPaobubBuild({
     prepared,
     nativeContent: { ...native, schemaVersion: native.schemaVersion + 1 },
-    validate: isCardDocument,
+    validate: isMindmapDocument,
     outDir,
   })).rejects.toThrow('must match');
   await expect(stat(outDir)).rejects.toMatchObject({ code: 'ENOENT' });

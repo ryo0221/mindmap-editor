@@ -109,3 +109,6 @@ export function createDocument(cards: readonly Card[] = []): CardDocument {
   validateDocument(value);
   return { ...value, cards: value.cards.map((card) => ({ ...card })) };
 }
+
+export { MINDMAP_ARTIFACT_KIND, MINDMAP_SCHEMA_VERSION, validateMindmap, isMindmapDocument } from './mindmap-model';
+export type { MindmapDocument, MindmapNode, Layout, Mark } from './mindmap-model';
