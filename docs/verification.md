@@ -164,3 +164,9 @@ root契約: `1.0.0-draft.1`、operations add-on: `operations@0-draft`。
 - `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/usr/bin/google-chrome npm run test:e2e`：デスクトップ・スマホ幅で計14件成功。
 
 操作の履歴・保存、読み取り専用の一時展開、IDの再利用防止などには未実施の試験が残る。全仕様を対応済みとはしない。
+
+### 中川さんの手元での画面試験
+
+実行者: 中川。環境: 手元のPC。対象 commit: `aa76946`。
+
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/opt/pw-browsers/chromium npx playwright test`：デスクトップ7件、モバイル7件の計14件が成功（9.0秒）。
