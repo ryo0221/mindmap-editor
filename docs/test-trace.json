@@ -380,6 +380,24 @@
       ],
       "方法": "tests/browser/editor.spec.ts: keeps a branch with four marks from overlapping the next branch in every layout",
       "結果": "通った"
+    },
+    {
+      "id": "TS-035",
+      "試験": "AI の提案で、足す枝の ID・位置・before を省いても、仮の名前で入れ子にしても、新しい ID で末尾に足せる",
+      "対象": [
+        "CAP-05"
+      ],
+      "方法": "tests/operations.test.ts: TS-035 足す枝の ID・位置・before を省いた提案や、仮の名前で入れ子にした提案を、新しい ID で末尾に足す",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-036",
+      "試験": "欠けた提案は、何番目のどの操作かと要る項目を言って断る",
+      "対象": [
+        "CAP-05"
+      ],
+      "方法": "tests/operations.test.ts: TS-036 足す枝の親や名前が欠けた提案は、何番目のどの操作かを言って断る",
+      "結果": "通った"
     }
   ],
   "対象外の能力": [
