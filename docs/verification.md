@@ -191,3 +191,12 @@ root契約: `1.0.0-draft.1`、operations add-on: `operations@0-draft`。
 - `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/opt/pw-browsers/chromium npx playwright test --trace off`：デスクトップ・モバイル各11件、計22件成功。
 
 発行済みIDの記憶は同じページ内に限られ、ページ再読み込み後の削除済みIDは保持されない。実PaoBubとの接続は試していない。
+
+### 画面試験の対応と検査内容の再確認（2026-11-21）
+
+基準 commit `da262e14c6dbcd5d0ae660f243161736e4bbc51f` に未コミットの試験変更を加えた作業ツリーで実行した。
+
+- `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/opt/pw-browsers/chromium npx playwright test --trace off`：デスクトップ・モバイル各11件、計22件成功。
+- 読み取り専用の畳む・開く前後の内容、Undo・Redoと保存後の再読込、および配置変更の履歴と再読込後の内容を確認した。
+
+実PaoBubとの接続は試していない。

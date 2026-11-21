@@ -150,19 +150,31 @@ test('TS-025 displays a save failure and retries without losing the edit', async
 
 test('TS-027 allows temporary folding in read-only without changing history or saved content', async ({ page }) => {
   test.setTimeout(10000);
+  const initial = await page.locator('#native-data').textContent();
   await page.locator('#file').setInputFiles('fixtures/mindmap/valid-rich.json');
   await page.getByRole('button', { name: '保存', exact: true }).click();
   await expect(page.locator('#save-state')).toHaveText('保存済み');
   const before = await page.locator('#native-data').textContent();
-  const undoDisabled = await page.locator('#undo').isDisabled();
+  await expect(page.locator('#undo')).toBeEnabled();
+  await expect(page.locator('#redo')).toBeDisabled();
   await page.locator('#readonly').check();
   await page.getByRole('button', { name: '畳む' }).click({ timeout: 3000 });
   await expect(page.getByRole('button', { name: '枝', exact: true })).toHaveCount(0);
   expect(await page.locator('#native-data').textContent()).toBe(before);
-  await page.locator('#readonly').uncheck();
-  expect(await page.locator('#undo').isDisabled()).toBe(undoDisabled);
-  await page.getByRole('button', { name: '再読み込み' }).click();
+  await page.getByRole('button', { name: '開く' }).click();
+  await expect(page.getByRole('button', { name: '枝', exact: true })).toBeVisible();
   expect(await page.locator('#native-data').textContent()).toBe(before);
+  await page.locator('#readonly').uncheck();
+  await expect(page.locator('#undo')).toBeEnabled();
+  await expect(page.locator('#redo')).toBeDisabled();
+  await page.locator('#undo').click();
+  await expect(page.locator('#native-data')).toHaveText(initial!);
+  await page.locator('#redo').click();
+  await expect(page.locator('#native-data')).toHaveText(before!);
+  await expect(page.locator('#save-state')).toHaveText('保存済み');
+  await page.getByRole('button', { name: '再読み込み' }).click();
+  await expect(page.locator('#message')).toHaveText('保存済みデータを再読み込みしました。');
+  await expect(page.locator('#native-data')).toHaveText(before!);
 });
 
 test('TS-029 saves layout changes and restores them through undo and redo', async ({ page }) => {
@@ -171,9 +183,18 @@ test('TS-029 saves layout changes and restores them through undo and redo', asyn
   await expect.poll(async () => JSON.parse((await page.locator('#native-data').textContent())!).layout, { timeout: 3000 }).toBe('tree');
   await page.getByRole('button', { name: '↶ Undo' }).click();
   await expect(page.getByLabel('配置', { exact: true })).toHaveValue('radial');
+  await expect.poll(async () => JSON.parse((await page.locator('#native-data').textContent())!).layout).toBe('radial');
   await page.getByRole('button', { name: '↷ Redo' }).click();
   await expect(page.getByLabel('配置', { exact: true })).toHaveValue('tree');
+  await expect.poll(async () => JSON.parse((await page.locator('#native-data').textContent())!).layout).toBe('tree');
   await page.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(page.locator('#save-state')).toHaveText('保存済み');
+  await page.getByRole('button', { name: '↶ Undo' }).click();
+  await expect.poll(async () => JSON.parse((await page.locator('#native-data').textContent())!).layout).toBe('radial');
+  await page.getByRole('button', { name: '↷ Redo' }).click();
+  await expect(page.locator('#save-state')).toHaveText('保存済み');
   await page.getByRole('button', { name: '再読み込み' }).click();
+  await expect(page.locator('#message')).toHaveText('保存済みデータを再読み込みしました。');
   await expect(page.getByLabel('配置', { exact: true })).toHaveValue('tree');
+  await expect.poll(async () => JSON.parse((await page.locator('#native-data').textContent())!).layout).toBe('tree');
 });

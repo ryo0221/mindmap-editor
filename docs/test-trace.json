@@ -331,6 +331,28 @@
       ],
       "方法": "tests/browser/editor.spec.ts: TS-029 saves layout changes and restores them through undo and redo",
       "結果": "通った"
+    },
+    {
+      "id": "TS-030",
+      "試験": "中心と新しい枝の表示位置・名前欄へのフォーカス",
+      "対象": [
+        "OP-01",
+        "CM-01",
+        "CAP-01"
+      ],
+      "方法": "tests/browser/editor.spec.ts: shows the center and new branch in the map and focuses its name",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-031",
+      "試験": "native JSONの書き出し・再取り込みと不正データの拒否",
+      "対象": [
+        "OP-08",
+        "IV-01",
+        "CAP-07"
+      ],
+      "方法": "tests/browser/editor.spec.ts: exports and reimports native content and rejects invalid data",
+      "結果": "通った"
     }
   ],
   "対象外の能力": [
