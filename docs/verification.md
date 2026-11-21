@@ -1,5 +1,17 @@
 # 検証記録
 
+## マインドマップ版 0.1.3 — 最初の地図を作る（create@0-draft）
+
+確認日: 2026-11-21。SDK の固定先を公開 commit `3808efe94d2171c9bbf3d635525ccb5bf9a4a8ff`（open-editor-platform の create add-on の段階 PR）へ移した。38 upstream files（editor-core の `progress.ts`・`vertical-text.ts` が閉包に加わった）、5 package。
+
+| 検査 | 結果 |
+| --- | --- |
+| `npm run check` | PASS。SDK固定ソースの照合と型検査 |
+| `npx vitest run` | PASS。7ファイル、35テスト（TS-037 を含む。失敗・スキップなし） |
+| `npm run build:extension` / `npm run verify:package` | PASS。pin `sha256:366c15cf4e3f8852acfa6f7918bdb56892f6b851640607fc8fecdae3ea408128` |
+| `npx playwright test --trace off` | PASS。desktop/mobile 計28（`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/opt/pw-browsers/chromium`） |
+| 実 PaoBub で「新しく作る」 | NOT RUN。PaoBub 側の対応（vendor の更新とボタン）は別の PR |
+
 ## マインドマップ版 0.1.0
 
 確認日: 2026-11-21。対象 commit: `b6f4be7a587ee3910238ffe190633e51020b4cdb`。検査時の作業ツリーはクリーンで、検査後にこの記録を更新した。

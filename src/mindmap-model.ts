@@ -90,3 +90,9 @@ export function validateMindmap(value: unknown): asserts value is MindmapDocumen
 export function isMindmapDocument(value: unknown): value is MindmapDocument {
   try { validateMindmap(value); return true; } catch { return false; }
 }
+const hex32 = () => Array.from(crypto.getRandomValues(new Uint8Array(16)), n => n.toString(16).padStart(2, '0')).join('');
+/** まだファイルの無い地図の最初の中身：中心の枝だけを持つ。利用者のデータは含めない（create@0-draft）。 */
+export function createMindmap(): MindmapDocument {
+  const rootId = `n-${hex32()}`;
+  return { artifactKind: MINDMAP_ARTIFACT_KIND, schemaVersion: MINDMAP_SCHEMA_VERSION, id: `d-${hex32()}`, rootId, layout: 'radial', nodes: { [rootId]: { id: rootId, text: '中心のテーマ', children: [] } } };
+}
