@@ -1,5 +1,118 @@
 {
- "note": "引用の表。from の項目が to の項目をもとにしている。",
- "citations": [],
- "exemptions": []
+  "note": "引用の表。from の項目が to の項目をもとにしている。",
+  "citations": [
+    {
+      "from": "OP-01",
+      "to": "UR-01"
+    },
+    {
+      "from": "OP-01",
+      "to": "UR-02"
+    },
+    {
+      "from": "OP-02",
+      "to": "UR-01"
+    },
+    {
+      "from": "OP-03",
+      "to": "UR-01"
+    },
+    {
+      "from": "OP-03",
+      "to": "UR-02"
+    },
+    {
+      "from": "OP-03",
+      "to": "UR-03"
+    },
+    {
+      "from": "OP-04",
+      "to": "UR-02"
+    },
+    {
+      "from": "OP-04",
+      "to": "UR-01"
+    },
+    {
+      "from": "OP-05",
+      "to": "UR-01"
+    },
+    {
+      "from": "OP-05",
+      "to": "UR-02"
+    },
+    {
+      "from": "OP-06",
+      "to": "UR-01"
+    },
+    {
+      "from": "OP-06",
+      "to": "UR-02"
+    },
+    {
+      "from": "OP-07",
+      "to": "UR-03"
+    },
+    {
+      "from": "OP-07",
+      "to": "UR-01"
+    },
+    {
+      "from": "OP-07",
+      "to": "UR-02"
+    },
+    {
+      "from": "OP-08",
+      "to": "UR-01"
+    },
+    {
+      "from": "OP-08",
+      "to": "UR-02"
+    },
+    {
+      "from": "OP-08",
+      "to": "UR-03"
+    },
+    {
+      "from": "CAP-01",
+      "to": "OP-01"
+    },
+    {
+      "from": "CAP-01",
+      "to": "OP-02"
+    },
+    {
+      "from": "CAP-01",
+      "to": "OP-05"
+    },
+    {
+      "from": "CAP-02",
+      "to": "OP-03"
+    },
+    {
+      "from": "CAP-03",
+      "to": "OP-04"
+    },
+    {
+      "from": "CAP-04",
+      "to": "OP-05"
+    },
+    {
+      "from": "CAP-04",
+      "to": "OP-06"
+    },
+    {
+      "from": "CAP-05",
+      "to": "OP-06"
+    },
+    {
+      "from": "CAP-06",
+      "to": "OP-07"
+    },
+    {
+      "from": "CAP-07",
+      "to": "OP-08"
+    }
+  ],
+  "exemptions": []
 }
