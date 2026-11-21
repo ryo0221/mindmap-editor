@@ -126,7 +126,10 @@
    "acceptedOrg": "org_43ebefe4ad314d25"
   },
   "purpose": {
-   "state": "未着手"
+   "state": "受け入れ済み",
+   "acceptedAt": "2026-11-21T13:01:22.565Z",
+   "acceptedBy": "早川 葵（P-f76d97e41ec6a817）",
+   "acceptedOrg": "org_43ebefe4ad314d25"
   },
   "format": {
    "state": "未着手"
