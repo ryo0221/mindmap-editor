@@ -162,7 +162,10 @@
    "acceptedOrg": "org_43ebefe4ad314d25"
   },
   "package": {
-   "state": "未着手"
+   "state": "受け入れ済み",
+   "acceptedAt": "2026-11-21T15:11:40.409Z",
+   "acceptedBy": "中川 透（P-1090de3eae8c3c21）",
+   "acceptedOrg": "org_43ebefe4ad314d25"
   },
   "learning": {
    "state": "未着手"
