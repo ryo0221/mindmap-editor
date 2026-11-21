@@ -1,0 +1,150 @@
+{
+ "format": 1,
+ "name": "マインドマップの道具",
+ "definition": {
+  "id": "editor-development",
+  "version": "1.0.0"
+ },
+ "citations": "trace/citations.json",
+ "deliverables": {
+  "process-map": [
+   {
+    "path": "docs/process-map.json",
+    "as": "plain"
+   }
+  ],
+  "purpose-note": [
+   {
+    "path": "docs/purpose-note.md",
+    "as": "markdown",
+    "rules": [
+     {
+      "kind": "user",
+      "match": "^### (UR-\\d+)\\b"
+     },
+     {
+      "kind": "operation",
+      "match": "^### (OP-\\d+)\\b"
+     },
+     {
+      "kind": "exclude",
+      "match": "^### (EX-\\d+)\\b"
+     }
+    ]
+   }
+  ],
+  "capability-matrix": [
+   {
+    "path": "docs/capability-matrix.json",
+    "as": "json",
+    "kind": "capability",
+    "at": "capability"
+   }
+  ],
+  "format-spec": [
+   {
+    "path": "docs/format-spec.json",
+    "as": "json",
+    "kind": "field",
+    "at": "field"
+   },
+   {
+    "path": "docs/format-spec.json",
+    "as": "json",
+    "kind": "limit",
+    "at": "limit"
+   },
+   {
+    "path": "docs/format-spec.json",
+    "as": "json",
+    "kind": "invariant",
+    "at": "invariant"
+   }
+  ],
+  "command-table": [
+   {
+    "path": "docs/command-table.json",
+    "as": "json",
+    "kind": "command",
+    "at": "command"
+   }
+  ],
+  "screen-design": [
+   {
+    "path": "design/screen-design.json",
+    "as": "plain"
+   },
+   {
+    "path": "design/screen-design.items.json",
+    "as": "json",
+    "kind": "screen",
+    "at": "screen"
+   }
+  ],
+  "code": [
+   {
+    "path": "src/",
+    "as": "plain"
+   }
+  ],
+  "test-trace": [
+   {
+    "path": "docs/test-trace.json",
+    "as": "json",
+    "kind": "test",
+    "at": "test"
+   }
+  ],
+  "release-record": [
+   {
+    "path": "docs/release-record.json",
+    "as": "json",
+    "kind": "release",
+    "at": "release"
+   },
+   {
+    "path": "docs/release-record.json",
+    "as": "json",
+    "kind": "host-check",
+    "at": "host-check"
+   }
+  ],
+  "learning-notes": [
+   {
+    "path": "docs/learning-notes.json",
+    "as": "json",
+    "kind": "learning",
+    "at": "learning"
+   }
+  ]
+ },
+ "phases": {
+  "process": {
+   "state": "進行中"
+  },
+  "purpose": {
+   "state": "未着手"
+  },
+  "format": {
+   "state": "未着手"
+  },
+  "commands": {
+   "state": "未着手"
+  },
+  "screen": {
+   "state": "未着手"
+  },
+  "build": {
+   "state": "未着手"
+  },
+  "verify": {
+   "state": "未着手"
+  },
+  "package": {
+   "state": "未着手"
+  },
+  "learning": {
+   "state": "未着手"
+  }
+ }
+}
