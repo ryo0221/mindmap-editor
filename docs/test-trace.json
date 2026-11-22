@@ -407,6 +407,33 @@
       ],
       "方法": "tests/host.test.ts: TS-037 makes the first map from the built package: only a centre branch, new IDs each time, opened and saved like any map",
       "結果": "通った"
+    },
+    {
+      "id": "TS-039",
+      "試験": "大きな地図を「全体を見る」で地図の欄に収まるまで縮め、縮める・広げるで1段ずつ倍率を変える（25%〜150%）",
+      "対象": [
+        "CAP-02"
+      ],
+      "方法": "tests/browser/editor.spec.ts: TS-039 shrinks a large map to fit with 全体を見る, and zooms out and in step by step",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-040",
+      "試験": "移動先の親に、選んだ枝自身とその子孫を出さない",
+      "対象": [
+        "CAP-01"
+      ],
+      "方法": "tests/browser/editor.spec.ts: TS-040 does not offer the branch itself or its descendants as the new parent",
+      "結果": "通った"
+    },
+    {
+      "id": "TS-041",
+      "試験": "選んだ枝が外から（Host の Undo・AI の提案の適用）変わったとき、手を入れていない枝の情報は今の中身に合わせ、入力中のものは残す",
+      "対象": [
+        "CAP-03"
+      ],
+      "方法": "tests/browser/editor.spec.ts: TS-041 refreshes the branch fields when the selected branch changes from outside and the fields are untouched",
+      "結果": "通った"
     }
   ],
   "対象外の能力": [
