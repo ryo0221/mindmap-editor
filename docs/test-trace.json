@@ -398,6 +398,15 @@
       ],
       "方法": "tests/operations.test.ts: TS-036 足す枝の親や名前が欠けた提案は、何番目のどの操作かを言って断る",
       "結果": "通った"
+    },
+    {
+      "id": "TS-037",
+      "試験": "まだファイルの無い地図の最初の中身を、build した package から作れる。中心の枝だけで、毎回新しい ID になり、ふつうの地図として開いて保存できる",
+      "対象": [
+        "CAP-07"
+      ],
+      "方法": "tests/host.test.ts: TS-037 makes the first map from the built package: only a centre branch, new IDs each time, opened and saved like any map",
+      "結果": "通った"
     }
   ],
   "対象外の能力": [

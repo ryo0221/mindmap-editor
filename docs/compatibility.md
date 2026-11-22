@@ -5,13 +5,14 @@
 このテンプレートは、公開リポジトリ`ryo0221/open-editor-platform`の次のcommitを使います。
 
 ```text
-44fb3e10744fd63967aaa3d3a321936cf4af862c
+3808efe94d2171c9bbf3d635525ccb5bf9a4a8ff
 ```
 
 | 項目 | 対応するもの |
 | --- | --- |
 | 拡張のroot契約 | `1.0.0-draft.1` |
 | 操作提案add-on | `operations@0-draft` |
+| 作成add-on | `create@0-draft`。`definition.create()`が中心の枝だけの地図を返す。この add-on を知らない旧 Host の runtime は package を登録しない |
 | 画面 | `ExtensionDefinition.mount`と`ScopedHost`を使うplain TypeScript DOM |
 | 編集 | `EditorCommand`、実EPのローカル履歴とUndo/Redo |
 | 保存 | 実EPの`ArtifactEditor`とstorage境界 |

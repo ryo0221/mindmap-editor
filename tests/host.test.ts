@@ -106,3 +106,21 @@ it('TS-028 reverses and reapplies color marks and note and saves them', async ()
   expect(reopened.editor.content).toEqual(states[3]);
   reopened.close(); registration.uninstall();
 });
+
+it('TS-037 makes the first map from the built package: only a centre branch, new IDs each time, opened and saved like any map', async () => {
+  const registration = installVerifiedExtension(new ExtensionRegistry(), loaded);
+  expect(registration.manifest.addons?.create).toEqual({ version: 'create@0-draft' });
+  const first = registration.create!(), second = registration.create!();
+  expect(Object.keys(first.nodes)).toEqual([first.rootId]);
+  expect(first.nodes[first.rootId]).toEqual({ id: first.rootId, text: '中心のテーマ', children: [] });
+  expect(first.layout).toBe('radial');
+  expect(second.id).not.toBe(first.id);
+  expect(second.rootId).not.toBe(first.rootId);
+  const storage = new MemoryStorage<Artifact<MindmapDocument>>();
+  const host = createLocalHost(registration, createArtifact(registration.manifest.artifactKind, 'New', structuredClone(first) as MindmapDocument), storage);
+  host.handle.api.execute(addNode(first.rootId, 0, 'n-' + 'a'.repeat(32), '最初の枝'));
+  await host.save();
+  const reopened = await host.reopenSaved();
+  expect(Object.keys(reopened.editor.content.nodes)).toHaveLength(2);
+  expect(reopened.editor.content.nodes[first.rootId].children).toEqual(['n-' + 'a'.repeat(32)]);
+});
