@@ -12,31 +12,33 @@ const stepSchema = { type: 'object' as const, properties: {
 }, required: ['kind'], additionalProperties: false as const };
 export const branchOperation: OperationDeclaration = {
   id: 'edit-branch', version: '1.0.0', title: '枝の操作',
-  inputSchema: { type: 'object', properties: { before: text(32), steps: { type: 'array', items: stepSchema, minItems: 1, maxItems: 100 } }, required: ['before','steps'], additionalProperties: false },
+  inputSchema: { type: 'object', properties: { before: text(32), steps: { type: 'array', items: stepSchema, minItems: 1, maxItems: 100 } }, required: ['steps'], additionalProperties: false },
 };
 export const operationDeclarations: readonly OperationDeclaration[] = [branchOperation];
 type Step = { kind: string; id?: string; parentId?: string; index?: number; text?: string; side?: 'left'|'right'; collapsed?: boolean; marks?: Mark[] };
-function parse(operation: string, value: unknown): { before: string; steps: Step[] } {
+function parse(operation: string, value: unknown): { before?: string; steps: Step[] } {
   if (operation !== branchOperation.id || !value || typeof value !== 'object' || Array.isArray(value)) throw new Error('操作の入力が不正です。');
   const v = value as Record<string, unknown>;
-  if (Object.keys(v).sort().join() !== 'before,steps' || typeof v.before !== 'string' || v.before.length > 32 || !Array.isArray(v.steps) || !v.steps.length || v.steps.length > 100) throw new Error('操作の入力が不正です。');
+  if (Object.keys(v).some(k => k !== 'before' && k !== 'steps') || ('before' in v && (typeof v.before !== 'string' || v.before.length > 32)) || !Array.isArray(v.steps) || !v.steps.length || v.steps.length > 100) throw new Error('操作の入力が不正です。');
   const specs: Record<string, { required: string[]; optional?: string[] }> = {
-    add: { required: ['id','parentId','index','text'], optional: ['side'] }, rename: { required: ['id','text'] }, reorder: { required: ['id','index'] }, move: { required: ['id','parentId','index'], optional: ['side'] }, delete: { required: ['id'] }, collapse: { required: ['id','collapsed'] }, color: { required: ['id'], optional: ['text'] }, marks: { required: ['id'], optional: ['marks'] }, note: { required: ['id'], optional: ['text'] }, layout: { required: ['text'] },
+    add: { required: ['parentId','text'], optional: ['id','index','side'] }, rename: { required: ['id','text'] }, reorder: { required: ['id','index'] }, move: { required: ['id','parentId','index'], optional: ['side'] }, delete: { required: ['id'] }, collapse: { required: ['id','collapsed'] }, color: { required: ['id'], optional: ['text'] }, marks: { required: ['id'], optional: ['marks'] }, note: { required: ['id'], optional: ['text'] }, layout: { required: ['text'] },
   };
-  for (const raw of v.steps) {
+  for (const [i, raw] of v.steps.entries()) {
     if (!raw || typeof raw !== 'object' || Array.isArray(raw)) throw new Error('操作が不正です。');
     const s = raw as Record<string, unknown>, spec = typeof s.kind === 'string' ? specs[s.kind] : undefined;
-    if (!spec || spec.required.some(k => !(k in s)) || Object.keys(s).some(k => !['kind', ...spec.required, ...(spec.optional ?? [])].includes(k))) throw new Error('操作の項目が不正です。');
+    if (!spec || spec.required.some(k => !(k in s)) || Object.keys(s).some(k => !['kind', ...spec.required, ...(spec.optional ?? [])].includes(k))) throw new Error(`${i + 1} 番目の操作（${String(s.kind)}）の項目が不正です。要る項目：${spec ? spec.required.join('・') : 'kind'}`);
     for (const k of ['id','parentId','text','side']) if (k in s && typeof s[k] !== 'string') throw new Error('文字列が必要です。');
     if ('index' in s && (!Number.isInteger(s.index) || (s.index as number) < 0 || (s.index as number) > 200)) throw new Error('位置が不正です。');
     if ('collapsed' in s && typeof s.collapsed !== 'boolean') throw new Error('折りたたみが不正です。');
     if ('marks' in s && (!Array.isArray(s.marks) || s.marks.length > 4 || s.marks.some(m => typeof m !== 'string'))) throw new Error('印が不正です。');
   }
-  return { before: v.before, steps: structuredClone(v.steps) as Step[] };
+  // 足す枝の ID と位置は省いてよい（AI の提案は ID を作れない）。省いた ID はここで発行し、位置は末尾にする
+  const steps = structuredClone(v.steps) as Step[];
+  return { before: typeof v.before === 'string' ? v.before : undefined, steps };
 }
 function stepCommand(s: Step): EditorCommand<MindmapDocument> {
   switch (s.kind) {
-    case 'add': return addNode(s.parentId!, s.index!, s.id!, s.text!, s.side);
+    case 'add': return addAtEnd(s);
     case 'rename': return renameNode(s.id!, s.text!);
     case 'reorder': return reorderNode(s.id!, s.index!);
     case 'move': return moveNode(s.id!, s.parentId!, s.index!, s.side);
@@ -57,13 +59,28 @@ export function fingerprint(content: MindmapDocument): string {
   }
   return a.toString(16).padStart(16, '0') + b.toString(16).padStart(16, '0');
 }
+function freshId(): string { return 'n-' + Array.from(crypto.getRandomValues(new Uint8Array(16)), n => n.toString(16).padStart(2, '0')).join(''); }
+/** 位置を省いた「足す」は、その時点の親の子の末尾に足す */
+function addAtEnd(s: Step): EditorCommand<MindmapDocument> {
+  const id = s.id!;
+  return { type: 'mindmap.add', label: '枝を足す', apply: doc => addNode(s.parentId!, s.index ?? (doc.nodes[s.parentId!]?.children.length ?? 0), id, s.text!, s.side).apply(doc) };
+}
+/** before は、この Editor の指紋（32 桁の16進）のときだけ照合する。Host の版の名前など別の値は、Host が基準の版を確かめるので照合しない */
+const isFingerprint = (v: string | undefined): v is string => !!v && /^[0-9a-f]{32}$/.test(v);
 function make(operation: string, value: unknown, content: MindmapDocument): EditorCommand<MindmapDocument> {
   const input = parse(operation, value); validateMindmap(content);
+  // 足す枝の ID は、省いても、仮の名前（例：new-1）でもよい。この Editor の形（n- と 32 桁の16進）でなければ新しい ID を発行し、後ろの手順の同じ仮の名前も置き換える
+  const temp = new Map<string, string>();
+  for (const s of input.steps) {
+    if (s.kind === 'add' && (s.id === undefined || !/^n-[0-9a-f]{32}$/.test(s.id))) { const id = freshId(); if (s.id !== undefined) temp.set(s.id, id); s.id = id; }
+    else { if (s.id !== undefined && temp.has(s.id)) s.id = temp.get(s.id); }
+    if (s.parentId !== undefined && temp.has(s.parentId)) s.parentId = temp.get(s.parentId);
+  }
   const commands = input.steps.map(stepCommand);
   const original = JSON.stringify(content);
   const apply = (current: MindmapDocument) => {
     validateMindmap(current);
-    if (fingerprint(current) !== input.before || JSON.stringify(current) !== original) throw new Error('基準の文書が変更されています。');
+    if ((isFingerprint(input.before) && fingerprint(current) !== input.before) || JSON.stringify(current) !== original) throw new Error('基準の文書が変更されています。');
     return commands.reduce((doc, cmd) => cmd.apply(doc), current);
   };
   apply(content);

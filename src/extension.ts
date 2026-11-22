@@ -3,7 +3,7 @@ import { MINDMAP_ARTIFACT_KIND, MINDMAP_SCHEMA_VERSION, isMindmapDocument, type 
 import { mountEditor } from './Editor';
 import { operationDeclarations, operations } from './operations';
 export const manifest: Omit<ExtensionManifest, 'packageHash'> = {
-  contractVersion: CONTRACT_VERSION, id: 'shinonome.mindmap-editor', version: '0.1.1',
+  contractVersion: CONTRACT_VERSION, id: 'shinonome.mindmap-editor', version: '0.1.2',
   artifactKind: MINDMAP_ARTIFACT_KIND, schemaVersion: MINDMAP_SCHEMA_VERSION,
   capabilities: ['local-edit', 'surface', 'persistence'], permissions: ['artifact:read', 'artifact:write'],
   licenseNotices: ['AGPL-3.0-only. See LICENSE and NOTICE shipped with this package.'],
