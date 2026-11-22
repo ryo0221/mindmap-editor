@@ -261,3 +261,60 @@ test('keeps a branch with four marks from overlapping the next branch in every l
     }
   }
 });
+
+test('TS-039 shrinks a large map to fit with 全体を見る, and zooms out and in step by step', async ({ page }) => {
+  await page.getByRole('button', { name: '子を足す' }).click();
+  for (let i = 0; i < 29; i++) await page.getByRole('button', { name: '枝を足す' }).click();
+  await expect(page.locator('.mindmap-node')).toHaveCount(31);
+  const zoom = page.getByRole('status', { name: '表示の倍率' });
+  await expect(zoom).toHaveText('100%');
+  await page.getByRole('button', { name: '全体を見る' }).click();
+  const fitted = Number((await zoom.textContent())!.replace('%', ''));
+  expect(fitted).toBeLessThan(100);
+  const viewport = page.viewportSize()!;
+  const sizer = await page.locator('.mindmap-sizer').boundingBox();
+  const map = await page.locator('.mindmap-map').boundingBox();
+  expect(sizer!.height).toBeLessThanOrEqual(viewport.height * 0.75 + 1);
+  expect(sizer!.width).toBeLessThanOrEqual(map!.width);
+  // 全部の枝が、縮めた大きさの中に入る
+  for (const box of await page.locator('.mindmap-node').evaluateAll((nodes) => nodes.map((n) => n.getBoundingClientRect().toJSON()))) {
+    expect(box.bottom).toBeLessThanOrEqual(sizer!.y + sizer!.height + 1);
+    expect(box.right).toBeLessThanOrEqual(sizer!.x + sizer!.width + 1);
+  }
+  await page.getByRole('button', { name: '広げる' }).click();
+  await expect(zoom).not.toHaveText(`${fitted}%`);
+  const out = page.getByRole('button', { name: '縮める' });
+  for (let i = 0; i < 8 && (await out.isEnabled()); i++) await out.click();
+  await expect(zoom).toHaveText('25%');
+  await expect(page.getByRole('button', { name: '縮める' })).toBeDisabled();
+});
+
+test('TS-040 does not offer the branch itself or its descendants as the new parent', async ({ page }) => {
+  await page.getByRole('button', { name: '子を足す' }).click();
+  await page.getByLabel('名前', { exact: true }).fill('親');
+  await page.getByRole('button', { name: '適用', exact: true }).click();
+  await page.getByRole('button', { name: '子を足す' }).click();
+  await page.getByLabel('名前', { exact: true }).fill('子');
+  await page.getByRole('button', { name: '適用', exact: true }).click();
+  await page.getByRole('button', { name: '中心', exact: true }).click();
+  await page.getByRole('button', { name: '子を足す' }).click();
+  await page.getByLabel('名前', { exact: true }).fill('別');
+  await page.getByRole('button', { name: '適用', exact: true }).click();
+  await page.getByRole('button', { name: '親', exact: true }).click();
+  await expect(page.getByLabel('移動先の親').locator('option')).toHaveText(['中心', '別']);
+});
+
+test('TS-041 refreshes the branch fields when the selected branch changes from outside and the fields are untouched', async ({ page }) => {
+  const name = page.getByLabel('名前', { exact: true });
+  await name.fill('改名');
+  await page.getByRole('button', { name: '適用', exact: true }).click();
+  await expect(page.getByRole('button', { name: '改名', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: '↶ Undo' }).click();
+  await expect(page.getByRole('button', { name: '中心', exact: true })).toBeVisible();
+  await expect(name).toHaveValue('中心');
+  // 手を入れている入力は、外から変わっても消さない
+  await name.fill('入力中');
+  await page.getByRole('button', { name: '↷ Redo' }).click();
+  await expect(page.getByRole('button', { name: '改名', exact: true })).toBeVisible();
+  await expect(name).toHaveValue('入力中');
+});

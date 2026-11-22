@@ -40,7 +40,13 @@ export function mountEditor(container: HTMLElement, host: ScopedHost<MindmapDocu
   const layoutSelect = el('select'); layoutSelect.setAttribute('aria-label','配置');
   for (const [value, label] of [['radial','左右'],['right','右向き'],['tree','下向き']]) { const o = el('option',label); o.value = value; layoutSelect.append(o); }
   layoutSelect.onchange = () => { if (layoutSelect.value !== host.read().layout) perform(setLayout(layoutSelect.value as Layout)); else draw(); };
-  toolbar.append(sibling, child, del, undo, redo, layoutSelect);
+  // 大きな地図を見渡す：縮める・広げる・全体を見る（地図の欄に収まる大きさまで縮める。1 倍より大きくはしない）
+  let zoom = 1, fit = false, shown = 1;
+  const zoomLabel = el('span'); zoomLabel.className = 'mindmap-zoom'; zoomLabel.setAttribute('aria-label','表示の倍率'); zoomLabel.setAttribute('role','status');
+  const zoomOut = button('縮める', () => { fit = false; zoom = Math.max(0.25, Math.round((shown - 0.25) * 4) / 4); draw(); });
+  const zoomIn = button('広げる', () => { fit = false; zoom = Math.min(1.5, Math.round((shown + 0.25) * 4) / 4); draw(); });
+  const zoomFit = button('全体を見る', () => { fit = true; draw(); });
+  toolbar.append(sibling, child, del, undo, redo, layoutSelect, zoomOut, zoomIn, zoomFit, zoomLabel);
   const heading = el('h2','枝の情報'), name = el('input'), color = el('input'), marks = el('input'), note = el('textarea');
   name.setAttribute('aria-label','名前'); color.type = 'hidden'; marks.type = 'hidden'; note.setAttribute('aria-label','メモ');
   // 色は色見本から選ぶ（色コードは見せない）。見本に無い色が付いた枝は「いまの色」として残し、選び直すまで変えない
@@ -79,9 +85,10 @@ export function mountEditor(container: HTMLElement, host: ScopedHost<MindmapDocu
     const n = d.nodes[selected]; sibling.disabled = readonly || selected === d.rootId; child.disabled = readonly || !n; del.disabled = readonly || selected === d.rootId || !n; undo.disabled = redo.disabled = readonly;
     for (const control of [name,color,marks,note,apply,cancel,...swatches.map(s => s.b),other]) control.disabled = readonly || !n;
     layoutSelect.value = layout;
-    if (n && (reset || !snapshot)) { snapshot = JSON.stringify(n); name.value = n.text; color.value = n.color ?? ''; showColor(); marks.value = (n.marks ?? []).join(', '); note.value = n.note ?? ''; }
+    // 外から（AI の提案の適用・Undo など）選んだ枝が変わり、入力が手つかずなら、枝の情報を今の中身に合わせる
+    if (n && (reset || !snapshot || (!dirty() && JSON.stringify(n) !== snapshot))) { snapshot = JSON.stringify(n); name.value = n.text; color.value = n.color ?? ''; showColor(); marks.value = (n.marks ?? []).join(', '); note.value = n.note ?? ''; }
     showMarks();
-    map.replaceChildren(); const canvas = el('div'); canvas.className = 'mindmap-canvas'; map.append(canvas);
+    map.replaceChildren(); const sizer = el('div'); sizer.className = 'mindmap-sizer'; const canvas = el('div'); canvas.className = 'mindmap-canvas'; sizer.append(canvas); map.append(sizer);
     const visible: { id: string; depth: number; side: number; order: number; parent?: string }[] = [];
     function visit(id: string, depth: number, side: number, parent?: string) { const x = d.nodes[id]; const order = visible.length; visible.push({id,depth,side,order,parent}); if (!(folded.get(id) ?? x.collapsed ?? false)) x.children.forEach((c,i) => visit(c,depth+1, depth === 0 && layout === 'radial' ? (d.nodes[c].side === 'left' || (!d.nodes[c].side && i % 2) ? -1 : 1) : side,id)); }
     visit(d.rootId,0,1); const positions = new Map<string,{x:number;y:number}>();
@@ -92,6 +99,8 @@ export function mountEditor(container: HTMLElement, host: ScopedHost<MindmapDocu
     const points = [...positions.values()]; const minX = Math.min(...points.map(p => p.x)), maxX = Math.max(...points.map(p => p.x)), maxY = Math.max(...points.map(p => p.y));
     for (const pos of points) { pos.x += 20 - minX; pos.y += 20; }
     const width = Math.max(map.clientWidth - 22, maxX - minX + 220), height = Math.max(300, maxY + 100, ...visible.map(v => positions.get(v.id)!.y + heights.get(v.id)! + 40)); canvas.style.width = `${width}px`; canvas.style.height = `${height}px`;
+    const z = shown = fit ? Math.min(1, (map.clientWidth - 22) / width, Math.max(240, window.innerHeight * 0.75) / height) : zoom;
+    canvas.style.transformOrigin = '0 0'; canvas.style.transform = z === 1 ? '' : `scale(${z})`; sizer.style.width = `${width * z}px`; sizer.style.height = `${height * z}px`; zoomLabel.textContent = `${Math.round(z * 100)}%`; zoomOut.disabled = z <= 0.25; zoomIn.disabled = z >= 1.5;
     const svg = document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.setAttribute('width',String(width)); svg.setAttribute('height',String(height)); svg.classList.add('mindmap-lines'); canvas.append(svg);
     for (const [i, v] of visible.entries()) { const pos = positions.get(v.id)!; if (v.parent) { const p = positions.get(v.parent)!; const line = document.createElementNS(svg.namespaceURI,'line'); line.setAttribute('x1',String(p.x+60)); line.setAttribute('y1',String(p.y+18)); line.setAttribute('x2',String(pos.x+60)); line.setAttribute('y2',String(pos.y+18)); line.setAttribute('stroke','#a6b2c2'); svg.append(line); }
       const item = button(d.nodes[v.id].text || '（無題）', () => { if (selected !== v.id) { if (dirty()) { status.textContent = '未確定の入力を適用または取り消してください。'; return; } selected = v.id; snapshot = ''; draw(true); } }); addBadges(item, d.nodes[v.id].marks ?? []); item.className = 'mindmap-node'; item.style.left = `${pos.x}px`; item.style.top = `${pos.y}px`; if (d.nodes[v.id].color) item.style.borderColor = d.nodes[v.id].color!; item.setAttribute('aria-pressed',String(v.id === selected)); item.dataset.nodeId = v.id;
@@ -100,9 +109,9 @@ export function mountEditor(container: HTMLElement, host: ScopedHost<MindmapDocu
     if (n?.children.length) { const fold = button((folded.get(selected) ?? n.collapsed) ? '開く' : '畳む', () => toggle(selected)); map.append(fold); }
     branchActions.replaceChildren();
     if (n && selected !== d.rootId) { const p = Object.values(d.nodes).find(x => x.children.includes(selected))!; const i = p.children.indexOf(selected); const up = button('前へ', () => perform(reorderNode(selected,i-1))); const down = button('後ろへ', () => perform(reorderNode(selected,i+1))); up.disabled = readonly || i === 0; down.disabled = readonly || i === p.children.length-1; branchActions.append(el('h3','枝の移動'), el('p','兄弟の中で並べ替え'),up,down);
-      const target = el('select'); target.setAttribute('aria-label','移動先の親'); for (const other of Object.values(d.nodes)) { const o = el('option',other.text || '（無題）'); o.value = other.id; target.append(o); } const index = el('input'); index.type = 'number'; index.min = '0'; index.value = '0'; index.setAttribute('aria-label','挿入位置'); const side = el('select'); side.setAttribute('aria-label','左右'); for (const v of ['right','left']) { const o = el('option',v); o.value=v; side.append(o); } const move = button('移す', () => perform(moveNode(selected,target.value,Number(index.value),target.value === d.rootId ? side.value as 'left'|'right' : undefined))); target.disabled = index.disabled = side.disabled = move.disabled = readonly; branchActions.append(label('移動先の親',target),label('挿入位置',index),label('中心からの方向',side),move);
+      const target = el('select'); target.setAttribute('aria-label','移動先の親'); const inside = new Set<string>(); (function mark(id: string) { inside.add(id); d.nodes[id].children.forEach(mark); })(selected); for (const other of Object.values(d.nodes).filter(x => !inside.has(x.id))) { const o = el('option',other.text || '（無題）'); o.value = other.id; target.append(o); } const index = el('input'); index.type = 'number'; index.min = '0'; index.value = '0'; index.setAttribute('aria-label','挿入位置'); const side = el('select'); side.setAttribute('aria-label','左右'); for (const v of ['right','left']) { const o = el('option',v); o.value=v; side.append(o); } const move = button('移す', () => perform(moveNode(selected,target.value,Number(index.value),target.value === d.rootId ? side.value as 'left'|'right' : undefined))); target.disabled = index.disabled = side.disabled = move.disabled = readonly; branchActions.append(label('移動先の親',target),label('挿入位置',index),label('中心からの方向',side),move);
     }
-    if (reset && positions.has(selected)) { const pos = positions.get(selected)!; map.scrollLeft = selected === d.rootId && layout === 'radial' ? 0 : Math.max(0, pos.x + 90 - map.clientWidth / 2); map.scrollTop = Math.max(0, pos.y + 20 - map.clientHeight / 2); }
+    if (reset && positions.has(selected)) { const pos = positions.get(selected)!; map.scrollLeft = selected === d.rootId && layout === 'radial' ? 0 : Math.max(0, (pos.x + 90) * shown - map.clientWidth / 2); map.scrollTop = Math.max(0, (pos.y + 20) * shown - map.clientHeight / 2); }
   }
   function toggle(id: string) { const n = host.read().nodes[id]; if (n?.children.length) { folded.set(id, !(folded.get(id) ?? n.collapsed ?? false)); draw(); } }
   draw(true); const timer = window.setInterval(() => { try { if (JSON.stringify(host.read()) !== last) draw(); } catch (e) { status.textContent = e instanceof Error ? e.message : '読み込めません。'; } },200);
