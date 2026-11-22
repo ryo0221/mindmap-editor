@@ -21,6 +21,27 @@
         "成果物": "事業の地図"
       },
       "登録の確認": "中川が対象commitをgit archiveし、npm ci・build:extension・verify:packageで独自にビルドした。host-pinのhashは記録された配布版と一致し、packageを置き場に置いてtrusted.jsonに1件追加した。"
+    },
+    {
+      "id": "RL-02",
+      "Editor ID": "ext:shinonome.mindmap-editor",
+      "版": "0.1.4",
+      "package": "dist/paobub/package-store/shinonome.mindmap-editor@0.1.4.json",
+      "host-pin": {
+        "id": "shinonome.mindmap-editor",
+        "version": "0.1.4",
+        "hash": "sha256:0156ecad8ec3e3a5e59d90bc9e0cc38f1c0f9f82c080aca383b2e51fde7743e3"
+      },
+      "対象のcommit": "a71cbb690221858cb3a04fad33e85ea503a52092",
+      "ライセンス": "AGPL-3.0-only",
+      "通知": "LICENSE と NOTICE を同梱。対応するソースと同梱ソースの通知を維持する。",
+      "native形式": "mindmap@1",
+      "取り込み先": {
+        "Host": "手元のPaoBub",
+        "Project": "新規事業の企画",
+        "成果物": "事業モデルの地図"
+      },
+      "登録の確認": "mainのa71cbb6からbuild:extension・verify:packageでビルドし、host-pinのhashが記録と一致した。packageを置き場に置いてtrusted.jsonに1件追加し、定義3.2.2で事業の地図・機会の地図・事業モデルの地図を0.1.4に結び直した。"
     }
   ],
   "host-check": [
@@ -65,6 +86,13 @@
       "代表操作": "外からの提案",
       "結果": "未達",
       "内容": "RoomのAIに「規制と認証」を足す提案を頼むと提案はできたが、mainの版に対する提案であり、作業ブランチに保存済みの地図を開いた画面には出ず、採否を確かめられなかった。PaoBub側の課題。"
+    },
+    {
+      "id": "HC-07",
+      "配布版": "RL-02",
+      "代表操作": "中身の確認（native）",
+      "結果": "通った",
+      "内容": "PaoBubのnative-check-worker（QuickJS、Intl・TextEncoder・cryptoなし）でmainの事業モデルの地図を確かめ、validになった。0.1.3では「確かめられない」になり、承認に未確認の印が要った。"
     }
   ]
 }
