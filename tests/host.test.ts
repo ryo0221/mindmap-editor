@@ -1,15 +1,17 @@
-import { beforeAll, expect, it } from 'vitest';
+import { beforeAll, expect, it, vi } from 'vitest';
 import { createArtifact, MemoryStorage, type Artifact } from '@editor-platform/artifact-core';
 import { ExtensionRegistry } from '@editor-platform/extension-runtime';
 import { installVerifiedExtension, loadVerifiedExtension, verifyExtensionPackage, type LoadedExtension } from '@editor-platform/extension-runtime/package';
 import { createLocalHost } from '../dev/host';
 import { renameNode, addNode, reorderNode, moveNode, colorNode, markNode, noteNode } from '../src/mindmap-commands';
-import type { MindmapDocument } from '../src/mindmap-model';
+import { utf8Length, type MindmapDocument } from '../src/mindmap-model';
 import sample from '../fixtures/mindmap/valid.json';
 import { buildExtension } from '../scripts/build-extension.mjs';
 let loaded: LoadedExtension<MindmapDocument>;
+let builtEntry: Uint8Array;
 beforeAll(async () => {
   const built = await buildExtension({ write: false });
+  builtEntry = new Uint8Array(Buffer.from(built.files.find((f: {path:string}) => f.path === 'entry.js')!.base64, 'base64'));
   const verified = await verifyExtensionPackage({ manifest: built.manifest, entry: built.entry, files: built.files.map((f: {path:string; base64:string}) => ({path:f.path, bytes: new Uint8Array(Buffer.from(f.base64,'base64'))})) }, (id, version) => id === built.manifest.id && version === built.manifest.version ? built.packageHash : undefined);
   loaded = await loadVerifiedExtension<MindmapDocument>(verified, { importModule: bytes => import(/* @vite-ignore */ `data:text/javascript;base64,${Buffer.from(bytes).toString('base64')}`) });
 }, 15000);
@@ -123,4 +125,19 @@ it('TS-037 makes the first map from the built package: only a centre branch, new
   const reopened = await host.reopenSaved();
   expect(Object.keys(reopened.editor.content.nodes)).toHaveLength(2);
   expect(reopened.editor.content.nodes[first.rootId].children).toEqual(['n-' + 'a'.repeat(32)]);
+});
+
+it('TS-038 loads the built entry and validates without DOM, Intl, TextEncoder or crypto, counting the size limit in UTF-8 bytes like TextEncoder', async () => {
+  for (const text of ['abc', 'é', '中心', '👍🏽', '\ud800', 'a\udc00b']) expect(utf8Length(text)).toBe(new TextEncoder().encode(text).length);
+  for (const name of ['Intl', 'TextEncoder', 'TextDecoder', 'crypto', 'document', 'window']) vi.stubGlobal(name, undefined);
+  try {
+    // 末尾の注釈で別の module として読み込む（先に読み込んだ entry を使い回さない）
+    const source = Buffer.concat([Buffer.from(builtEntry), Buffer.from('\n// sandbox\n')]).toString('base64');
+    const mod = await import(/* @vite-ignore */ `data:text/javascript;base64,${source}`);
+    const definition = mod.definition('sha256:test');
+    expect(definition.validate(structuredClone(sample))).toBe(true);
+    expect(definition.validate({ ...structuredClone(sample), rootId: 'x' })).toBe(false);
+  } finally {
+    vi.unstubAllGlobals();
+  }
 });

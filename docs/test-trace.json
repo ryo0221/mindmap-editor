@@ -409,6 +409,15 @@
       "結果": "通った"
     },
     {
+      "id": "TS-038",
+      "試験": "build した entry を、DOM・Intl・TextEncoder・crypto の無い実行系で読み込み、validate で地図を確かめられる。大きさの上限は TextEncoder と同じ UTF-8 の byte 数で数える",
+      "対象": [
+        "CAP-07"
+      ],
+      "方法": "tests/host.test.ts: TS-038 loads the built entry and validates without DOM, Intl, TextEncoder or crypto, counting the size limit in UTF-8 bytes like TextEncoder",
+      "結果": "通った"
+    },
+    {
       "id": "TS-039",
       "試験": "大きな地図を「全体を見る」で地図の欄に収まるまで縮め、縮める・広げるで1段ずつ倍率を変える（25%〜150%）",
       "対象": [
