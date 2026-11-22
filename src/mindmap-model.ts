@@ -27,6 +27,12 @@ function keys(v: unknown, required: string[], optional: string[] = []): asserts 
   if (!object(v) || required.some(k => !Object.hasOwn(v, k)) || Reflect.ownKeys(v).some(k => typeof k !== 'string' || ![...required, ...optional].includes(k))) fail('フィールドまたは型が不正');
 }
 const length = (s: string) => [...s].length;
+/** UTF-8 の byte 数（TextEncoder と同じ数。validate は Intl・TextEncoder の無い実行系でも動かす）。 */
+export function utf8Length(s: string): number {
+  let n = 0;
+  for (const c of s) { const p = c.codePointAt(0)!; n += p < 0x80 ? 1 : p < 0x800 ? 2 : p < 0x10000 ? 3 : 4; }
+  return n;
+}
 function compare(a: string, b: string): number {
   const x = [...a].map(c => c.codePointAt(0)!), y = [...b].map(c => c.codePointAt(0)!);
   for (let i = 0; i < Math.min(x.length, y.length); i++) if (x[i] !== y[i]) return x[i] - y[i];
@@ -85,7 +91,7 @@ export function validateMindmap(value: unknown): asserts value is MindmapDocumen
   reach(rootId);
   if (reachable.size !== ids.length) fail('根から到達できない');
   for (const id of ids) if ('side' in typedNodes[id] && !typedNodes[rootId].children.includes(id)) fail('左右は根の直接の子のみ');
-  if (new TextEncoder().encode(canonical(value)).length > 524288) fail('ファイルの大きさの上限');
+  if (utf8Length(canonical(value)) > 524288) fail('ファイルの大きさの上限');
 }
 export function isMindmapDocument(value: unknown): value is MindmapDocument {
   try { validateMindmap(value); return true; } catch { return false; }

@@ -407,6 +407,15 @@
       ],
       "方法": "tests/host.test.ts: TS-037 makes the first map from the built package: only a centre branch, new IDs each time, opened and saved like any map",
       "結果": "通った"
+    },
+    {
+      "id": "TS-038",
+      "試験": "build した entry を、DOM・Intl・TextEncoder・crypto の無い実行系で読み込み、validate で地図を確かめられる。大きさの上限は TextEncoder と同じ UTF-8 の byte 数で数える",
+      "対象": [
+        "CAP-07"
+      ],
+      "方法": "tests/host.test.ts: TS-038 loads the built entry and validates without DOM, Intl, TextEncoder or crypto, counting the size limit in UTF-8 bytes like TextEncoder",
+      "結果": "通った"
     }
   ],
   "対象外の能力": [
