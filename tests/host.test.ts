@@ -112,6 +112,7 @@ it('TS-028 reverses and reapplies color marks and note and saves them', async ()
 it('TS-037 makes the first map from the built package: only a centre branch, new IDs each time, opened and saved like any map', async () => {
   const registration = installVerifiedExtension(new ExtensionRegistry(), loaded);
   expect(registration.manifest.addons?.create).toEqual({ version: 'create@0-draft' });
+  expect(registration.manifest.addons?.items).toEqual({ version: 'items@0-draft', collections: [{ at: 'nodes', id: { field: 'text', from: 'leading-token' }, refs: ['link.id'], layout: ['side', 'collapsed', 'color'] }] });
   const first = registration.create!(), second = registration.create!();
   expect(Object.keys(first.nodes)).toEqual([first.rootId]);
   expect(first.nodes[first.rootId]).toEqual({ id: first.rootId, text: '中心のテーマ', children: [] });
