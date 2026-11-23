@@ -134,7 +134,7 @@ npm run test:e2e
 このテンプレートは次の公開ソースを固定しています。
 
 - 公開リポジトリ：`ryo0221/open-editor-platform`
-- commit：`c5dcc2b70a6e8fc2de1c77e02d9f9855037803dd`
+- commit：`a5f070ba39274c3492d119dee74bce41f3211d9a`
 - root契約：`1.0.0-draft.1`
 - 操作提案のadd-on：`operations@0-draft`
 - 最初の中身を作るadd-on：`create@0-draft`（中心の枝だけの地図を返す。Hostがまだ無い成果物を作るときに使う）

@@ -1,13 +1,15 @@
-import { CONTRACT_VERSION, CREATE_ADDON, OPERATIONS_ADDON, type ExtensionDefinition, type ExtensionManifest } from '@editor-platform/extension-contract';
+import { CONTRACT_VERSION, CREATE_ADDON, ITEMS_ADDON, OPERATIONS_ADDON, type ExtensionDefinition, type ExtensionManifest } from '@editor-platform/extension-contract';
 import { MINDMAP_ARTIFACT_KIND, MINDMAP_SCHEMA_VERSION, createMindmap, isMindmapDocument, type MindmapDocument } from './mindmap-model';
 import { mountEditor } from './Editor';
 import { operationDeclarations, operations } from './operations';
 export const manifest: Omit<ExtensionManifest, 'packageHash'> = {
-  contractVersion: CONTRACT_VERSION, id: 'shinonome.mindmap-editor', version: '0.1.4',
+  contractVersion: CONTRACT_VERSION, id: 'shinonome.mindmap-editor', version: '0.1.5',
   artifactKind: MINDMAP_ARTIFACT_KIND, schemaVersion: MINDMAP_SCHEMA_VERSION,
   capabilities: ['local-edit', 'surface', 'persistence'], permissions: ['artifact:read', 'artifact:write'],
   licenseNotices: ['AGPL-3.0-only. See LICENSE and NOTICE shipped with this package.'],
-  addons: { operations: { version: OPERATIONS_ADDON, declarations: operationDeclarations }, create: { version: CREATE_ADDON } },
+  addons: { operations: { version: OPERATIONS_ADDON, declarations: operationDeclarations }, create: { version: CREATE_ADDON },
+    // 枝の名前の頭の ID（例：OP-01）を項目の ID、残りを題、link の id をつながりとして Host に読ませる。並びの向き・畳み・色は見た目だけ
+    items: { version: ITEMS_ADDON, collections: [{ at: 'nodes', id: { field: 'text', from: 'leading-token' }, refs: ['link.id'], layout: ['side', 'collapsed', 'color'] }] } },
 };
 export function definition(packageHash: string): ExtensionDefinition<MindmapDocument> {
   return { manifest: { ...manifest, packageHash }, validate: isMindmapDocument, mount: mountEditor, operations, create: createMindmap };
